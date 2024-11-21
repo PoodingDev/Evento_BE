@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
+from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -79,12 +79,12 @@ WSGI_APPLICATION = 'Poodding.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'calendar_db',
-        'User': 'mac',
-        'Password':'0000',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': config('django.db.backends.sqlite3'),
+        'NAME': config('calendar_db'),
+        'User': config('mac'),
+        'Password':config('0000'),
+        'HOST': config('localhost'),
+        'PORT': config('3306'),
     }
 }
 
