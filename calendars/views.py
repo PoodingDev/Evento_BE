@@ -1,3 +1,4 @@
-from django.shortcuts import render
+from django.http import HttpResponse
 
-# Create your views here.
+def calendar_home(request):
+    return HttpResponse("This is the calendar app homepage.")
