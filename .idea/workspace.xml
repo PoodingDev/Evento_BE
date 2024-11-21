@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9339a73b-da6e-4f21-94d6-733703709b7b" name="변경" comment="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)">
-      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="9339a73b-da6e-4f21-94d6-733703709b7b" name="변경" comment="Chore: 프로젝트 초기 개발 세팅(env추가)">
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Poodding/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/Poodding/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/poetry.lock" afterDir="false" />
@@ -97,7 +96,7 @@
       <option name="presentableId" value="Default" />
       <updated>1732009627420</updated>
       <workItem from="1732009638384" duration="5403000" />
-      <workItem from="1732161801790" duration="1559000" />
+      <workItem from="1732161801790" duration="5104000" />
     </task>
     <task id="LOCAL-00001" summary="Chore: 프로젝트 초기 개발 세팅(black, isort, mypy 추가)">
       <option name="closed" value="true" />
@@ -155,7 +154,23 @@
       <option name="project" value="LOCAL" />
       <updated>1732156817154</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Chore: 프로젝트 초기 개발 세팅(env추가)">
+      <option name="closed" value="true" />
+      <created>1732164471512</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1732164471512</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Chore: 프로젝트 초기 개발 세팅(env추가)">
+      <option name="closed" value="true" />
+      <created>1732164532830</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1732164532830</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -164,6 +179,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Chore: 프로젝트 초기 개발 세팅(black, isort, mypy 추가)" />
     <MESSAGE value="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)" />
+    <MESSAGE value="Chore: 프로젝트 초기 개발 세팅(env추가)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Chore: 프로젝트 초기 개발 세팅(env추가)" />
   </component>
 </project>
