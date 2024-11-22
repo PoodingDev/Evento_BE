@@ -33,6 +33,8 @@ requests = "^2.32.3"
 google-auth-httplib2 = "^0.2.0"
 environ = "^1.0"
 cryptography = "^43.0.3"
+ngrok = "^1.4.0"
+google-api-python-client = "^2.154.0"
 
 
 [build-system]

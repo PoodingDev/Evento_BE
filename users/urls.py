@@ -1,7 +1,6 @@
 from django.urls import path
-from . import views
+from .views import SocialLoginView
 
 urlpatterns = [
-    #임시 URL 패턴
-    path('', views.home, name='home'),
+    path('social-login/', SocialLoginView.as_view(), name='social_login'),
 ]
