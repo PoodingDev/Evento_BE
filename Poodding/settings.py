@@ -1,3 +1,5 @@
+# -- coding: utf-8 --
+
 """
 Django settings for Poodding project.
 
@@ -17,7 +19,12 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import sys
+if sys.version_info < (3, 7):
+    import codecs
+    codecs.register(lambda name: codecs.lookup('utf-8') if name == 'utf-8' else None)
 
+DEFAULT_CHARSET = 'utf-8'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 load_dotenv(BASE_DIR / '.env')
