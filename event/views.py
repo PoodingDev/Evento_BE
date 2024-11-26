@@ -1,21 +1,58 @@
-from django.shortcuts import render
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 from .models import Event
 from .serializers import EventSerializer
 
 # Create your views here.
-# 이벤트 목록 조회 및 생성
-class EventListCreateAPIView(ListCreateAPIView):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save()  # 추가적으로 필요한 로직이 있다면 여기에 추가
+class EventListCreateAPIView(APIView):
+    # GET 요청: 전체 이벤트 조회
+    def get(self, request):
+        events = Event.objects.all()
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-# 이벤트 상세 조회, 수정, 삭제
-class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
-    queryset = Event.objects.all()
-    serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
+    # POST 요청: 새로운 이벤트 생성
+    def post(self, request):
+        serializer = EventSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EventDetailAPIView(APIView):
+    # 이벤트 객체 가져오기
+    def get_object(self, pk):
+        try:
+            return Event.objects.get(pk=pk)
+        except Event.DoesNotExist:
+            return None
+
+    # GET 요청: 특정 이벤트 조회
+    def get(self, request, pk):
+        event = self.get_object(pk)
+        if event is None:
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # PUT 요청: 특정 이벤트 수정
+    def put(self, request, pk):
+        event = self.get_object(pk)
+        if event is None:
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = EventSerializer(event, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # DELETE 요청: 특정 이벤트 삭제
+    def delete(self, request, pk):
+        event = self.get_object(pk)
+        if event is None:
+            return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+        event.delete()
+        return Response({"message": "Event deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
