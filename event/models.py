@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 class Event(models.Model):
-    calendar = models.ForeignKey('calendars.Calendar', on_delete=models.CASCADE, related_name='events')
+    calendar = models.ForeignKey('calendars.Calendar', on_delete=models.CASCADE, related_name='events', null=False)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     start_time = models.DateTimeField()
