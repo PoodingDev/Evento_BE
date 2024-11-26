@@ -17,3 +17,8 @@ def create_alarm(request, user_id, message):
         return redirect('user_dashboard')  # 알람 생성 후 리디렉션
     except User.DoesNotExist:
         return redirect('error_page')
+
+from django.http import HttpResponse
+
+def hello(request):
+    return HttpResponse('Hello, World!')  # 간단한 텍스트 응답

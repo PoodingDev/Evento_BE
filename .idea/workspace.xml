@@ -5,19 +5,73 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9339a73b-da6e-4f21-94d6-733703709b7b" name="변경" comment="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)">
+      <change afterPath="$PROJECT_DIR$/Evento_BE/Evento_BE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/favorites/serializers.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/favorites/test.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/urls.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/users/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/users/migrations/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/users/models.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/users/urls.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/users/users/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Poodding.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Poodding.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/admin.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/apps.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/migrations/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/models.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/tests.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/urls.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Evento_BE/users/views.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Poodding/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/Poodding/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/poetry.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/calendar_db" beforeDir="false" afterPath="$PROJECT_DIR$/calendar_db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/calendars/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/calendars/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/users/users/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/apps.py" beforeDir="false" afterPath="$PROJECT_DIR$/users/users/apps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/migrations/0001_initial.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/migrations/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/.gitattributes" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/models.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/users/users/tests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/event/views.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/function/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/function/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/function/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/function/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="DjangoConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)">
+    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;kimdaeho00&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/PoodingDev/Evento_BE.git&quot;,
+    &quot;accountId&quot;: &quot;4a546b91-38fc-4015-8af5-4a2bdb9020bd&quot;
+  }
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -28,28 +82,36 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Django 서버.Poodding.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.pycharm.django.structure.promotion.once.per.project&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;alarm&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "DatabaseDriversLRU": [
-      "mysql",
-      "postgresql"
+  &quot;keyToStringList&quot;: {
+    &quot;DatabaseDriversLRU&quot;: [
+      &quot;mysql&quot;,
+      &quot;postgresql&quot;
+    ],
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/새 스크래치 파일&quot;: [
+      &quot;PLAIN_TEXT&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/users" />
       <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/venv" />
     </key>
   </component>
   <component name="RunManager">
@@ -60,6 +122,7 @@
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="DJANGO_SETTINGS_MODULE" value="Poodding.settings" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="" />
@@ -81,8 +144,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23339.19" />
-        <option value="bundled-python-sdk-0029f7779945-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23339.19" />
+        <option value="bundled-js-predefined-d6986cc7102b-e768b9ed790e-JavaScript-PY-243.21565.199" />
+        <option value="bundled-python-sdk-cab1f2013843-4ae2d6a61b08-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.21565.199" />
       </set>
     </attachedChunks>
   </component>
@@ -95,6 +158,10 @@
       <option name="presentableId" value="Default" />
       <updated>1732009627420</updated>
       <workItem from="1732009638384" duration="4776000" />
+      <workItem from="1732344892031" duration="6413000" />
+      <workItem from="1732506166291" duration="5594000" />
+      <workItem from="1732514139230" duration="13240000" />
+      <workItem from="1732587722628" duration="20414000" />
     </task>
     <task id="LOCAL-00001" summary="Chore: 프로젝트 초기 개발 세팅(black, isort, mypy 추가)">
       <option name="closed" value="true" />
@@ -162,5 +229,26 @@
     <MESSAGE value="Chore: 프로젝트 초기 개발 세팅(black, isort, mypy 추가)" />
     <MESSAGE value="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)" />
     <option name="LAST_COMMIT_MESSAGE" value="Chore: 프로젝트 초기 개발 세팅(각종 패키지 및 requirements.txt추가)" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/favorites/models.py</url>
+          <line>4</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Poodding/settings.py</url>
+          <line>51</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Poodding/settings.py</url>
+          <line>32</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

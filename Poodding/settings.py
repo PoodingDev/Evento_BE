@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'event',
     'calendars',
-    'users'
+    'users',
+    'favorites',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -129,3 +130,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    # 기본 인증 방법 설정
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',  # 토큰 인증 추가 가능
+    ],
+    # 기본 렌더링 형식 설정 (JSON 형식으로 응답)
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
