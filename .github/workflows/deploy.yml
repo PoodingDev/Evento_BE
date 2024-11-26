@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run tests
+      run: python manage.py test
+    - name: Deploy to server
+      env:
+        PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}  # ________GitHub Secrets에 설정 필요________
+        HOST: ${{ secrets.SERVER_HOST }}  # ________GitHub Secrets에 설정 필요________
+        USER: ${{ secrets.SERVER_USER }}  # ________GitHub Secrets에 설정 필요________
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+          cd /path/to/your/project &&  # ________서버의 실제 프로젝트 경로로 변경________
+          git pull origin main &&  # ________배포할 브랜치 이름으로 변경________
+          source venv/bin/activate &&  # ________가상환경 경로가 다르다면 수정________
+          pip install -r requirements.txt &&
+          python manage.py migrate &&
+          sudo systemctl restart your-django-app'  # ________실제 Django 앱 서비스 이름으로 변경________

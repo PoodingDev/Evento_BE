@@ -6,7 +6,6 @@ __pycache__/
 client_secret_288731216319-757vmp6qh0qgtccej2mjmevlge6ted4a.apps.googleusercontent.com.json
 calendar_db
 poetry.lock
-pyproject.toml
 test.sh
 **/migrations/**.py
 !**/migrations/__init__.py
