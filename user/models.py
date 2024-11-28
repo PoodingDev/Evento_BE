@@ -1,10 +1,15 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
+
 
 class UserManager(BaseUserManager):
     def create_user(self, user_id, email, username, birth, nickname, password=None):
         if not email:
-            raise ValueError('Users must have an email address')
+            raise ValueError("Users must have an email address")
         user = self.model(
             user_id=user_id,
             email=self.normalize_email(email),
@@ -30,6 +35,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.CharField(max_length=30, unique=True)
     email = models.EmailField(unique=True)
@@ -41,8 +47,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'user_id'
-    REQUIRED_FIELDS = ['email', 'username', 'birth', 'nickname']
+    USERNAME_FIELD = "user_id"
+    REQUIRED_FIELDS = ["email", "username", "birth", "nickname"]
 
     def __str__(self):
         return self.user_id
