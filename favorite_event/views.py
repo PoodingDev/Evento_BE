@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404
-from favorite_event.models import FavoriteEvent
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from event.models import Event # 이벤트 모델을 가져옵니다.
+from event.models import Event  # 이벤트 모델을 가져옵니다.
+from favorite_event.models import FavoriteEvent
 from favorite_event.serializers import FavoriteEventSerializer
 
 
