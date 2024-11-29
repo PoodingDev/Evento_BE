@@ -1,37 +1,25 @@
 from rest_framework import serializers
-
-from calendars.models import Event
-
-from favorites.models import FavoriteEvent
+from favorite_event.models import FavoriteEvent
 
 
 class FavoriteEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = FavoriteEvent
-        fields = ["id", "user", "event", "created_at"]
+        fields = [
+            "favorite_event_id",
+            "user_id",
+            "event_id",
+            "easy_insidebar",
+            "d_day",
+            ]
 
 
-from rest_framework import serializers
-
-from favorites.models import FavoriteEvent
-
-
-class FavoriteEventSerializer(serializers.ModelSerializer):
+class FavoriteCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FavoriteEvent
-        fields = "__all__"  # 모든 필드를 직렬화
+        fields = ["event_id"]
 
 
-class FavoriteEventSerializer(serializers.ModelSerializer):
-    event = serializers.PrimaryKeyRelatedField(queryset=Event.objects.all())
 
 
-from rest_framework import serializers
 
-from favorites.models import FavoriteEvent
-
-
-class FavoriteEventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FavoriteEvent
-        fields = ["id", "user", "event"]
