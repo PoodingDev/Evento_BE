@@ -53,11 +53,11 @@ INSTALLED_APPS = [
     # apps
     "user",
     "calendars",
+    "calendaradmin",
     "event",
     "comment",
     "comment_like",
     "subscription",
-    "contact",
     "favorite_event",
 ]
 
