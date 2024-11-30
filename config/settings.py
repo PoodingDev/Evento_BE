@@ -58,7 +58,6 @@ INSTALLED_APPS = [
     "comment",
     "comment_like",
     "subscription",
-    "contact",
     "favorite_event",
 ]
 

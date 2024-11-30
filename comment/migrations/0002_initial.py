@@ -10,28 +10,24 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("calendars", "0002_initial"),
+        ("comment", "0001_initial"),
         ("event", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="event",
+            model_name="comment",
             name="admin_id",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="events",
-                to=settings.AUTH_USER_MODEL,
+                on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
             ),
         ),
         migrations.AddField(
-            model_name="event",
-            name="calendar_id",
+            model_name="comment",
+            name="event_id",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="events",
-                to="calendars.calendar",
+                on_delete=django.db.models.deletion.CASCADE, to="event.event"
             ),
         ),
     ]
