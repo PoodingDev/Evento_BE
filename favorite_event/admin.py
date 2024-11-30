@@ -12,3 +12,5 @@ class FavoriteEventAdmin(admin.ModelAdmin):
         "d_day",
         "easy_insidebar",
     )
+
+    list_filter = ("user_id",)

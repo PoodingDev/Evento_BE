@@ -85,7 +85,7 @@ class FavoriteEventTests(APITestCase):
     def test_delete_favorite(self):
         # 즐겨찾기 삭제 테스트
         # 먼저 즐겨찾기 생성
-        favorite = FavoriteEvent.objects.create(user_id=self.user, event_id=self.event)
+        FavoriteEvent.objects.create(user_id=self.user, event_id=self.event)
 
         url = reverse(
             "favorites:favorite-delete",

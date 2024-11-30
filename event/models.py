@@ -15,3 +15,6 @@ class Event(models.Model):
     end_time = models.DateTimeField()
     admin_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="events")
     # location = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.title} (ID: {self.event_id})"

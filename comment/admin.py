@@ -14,3 +14,5 @@ class CommentAdmin(admin.ModelAdmin):
         "event_id",
         "admin_id",
     )
+
+    list_filter = ("event_id", "admin_id")

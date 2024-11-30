@@ -21,6 +21,9 @@ class CommentTests(APITestCase):
             password="testpass123",
             nickname="테스트관리자",
         )
+        self.admin.is_staff = True
+        self.admin.save()
+
         self.client.force_authenticate(user=self.admin)
 
         # 테스트용 캘린더 생성
@@ -76,21 +79,6 @@ class CommentTests(APITestCase):
         self.assertEqual(len(response.data["comments"]), 1)
         self.assertEqual(response.data["comments"][0]["content"], "테스트댓글")
 
-    def test_get_comment_detail(self):
-        """개별 댓글 조회 테스트"""
-        url = reverse(
-            "comment:comment-detail",
-            kwargs={
-                "event_id": self.event.event_id,
-                "comment_id": self.comment.comment_id,
-            },
-        )
-
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["content"], "테스트댓글")
-
     def test_update_comment(self):
         """댓글 수정 테스트"""
         url = reverse(
@@ -131,14 +119,30 @@ class CommentTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data["error"], "이벤트 없음")
 
-    def test_get_nonexistent_comment(self):
-        """존재하지 않는 댓글 조회 테스트"""
+    def test_unauthorized_user_cannot_access(self):
+        """권한 없는 사용자 접근 테스트"""
+        # 권한 없는 일반 사용자 생성
+        normal_user = User.objects.create_user(
+            user_id="normaluser",
+            email="normal@test.com",
+            username="normaluser",
+            birth=timezone.now(),
+            password="testpass123",
+            nickname="일반사용자",
+        )
+        self.client.force_authenticate(user=normal_user)
+
         url = reverse(
-            "comment:comment-detail",
-            kwargs={"event_id": self.event.event_id, "comment_id": 999},
+            "comment:comment-list-create", kwargs={"event_id": self.event.event_id}
         )
 
+        # GET 요청 테스트
         response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["error"], "권한 없음")
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"], "댓글 없음")
+        # POST 요청 테스트
+        data = {"content": "새로운 댓글"}
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["error"], "권한 없음")

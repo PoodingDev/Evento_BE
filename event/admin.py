@@ -14,3 +14,5 @@ class EventAdmin(admin.ModelAdmin):
         "calendar_id",
         "admin_id",
     )
+
+    list_filter = ("calendar_id",)
