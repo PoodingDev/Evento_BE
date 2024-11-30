@@ -10,6 +10,7 @@ jobs:
   ci:
     runs-on: ubuntu-20.04
     env:
+      SECRET_KEY: '${{ secrets.SECRET_KEY }}'
       DB_HOST: "localhost"
       DB_PORT: "5432"
       DB_USER: "mac"
