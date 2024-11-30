@@ -2,8 +2,6 @@ from django.contrib import admin
 
 from favorite_event.models import FavoriteEvent
 
-# Register your models here.
-
 
 @admin.register(FavoriteEvent)
 class FavoriteEventAdmin(admin.ModelAdmin):
