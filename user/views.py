@@ -1,7 +1,8 @@
+from drf_spectacular.utils import extend_schema
 from jsonschema.validators import extend
 from rest_framework import generics, permissions
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
+
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
 
