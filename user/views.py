@@ -1,4 +1,7 @@
 import os
+
+import requests
+from django.contrib.auth import logout
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.utils import timezone
@@ -8,16 +11,18 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-import requests
+
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
 
 load_dotenv()
 
+
 class LoginView(TokenObtainPairView):
     @extend_schema(tags=["사용자"])
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
+
 
 class UserCreateView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -41,6 +46,7 @@ class UserCreateView(generics.CreateAPIView):
             )
         return Response(serializer.errors, status=400)
 
+
 class UserDetailView(generics.RetrieveUpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserUpdateSerializer
@@ -48,22 +54,66 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
 
     @extend_schema(tags=["사용자"])
     def get_object(self):
-        return self.request.user
+        if not self.request.user.is_authenticated:
+            return Response(
+                {
+                    "error": "인증 실패",
+                    "message": "로그인이 필요합니다. 다시 로그인해주세요.",
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            user = self.request.user
+            if not user:
+                return Response(
+                    {
+                        "error": "사용자 정보 없음",
+                        "message": "현재 로그인된 사용자의 정보를 찾을 수 없습니다.",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return user
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "error": "사용자 정보 없음",
+                    "message": "현재 로그인된 사용자의 정보를 찾을 수 없습니다.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
     @extend_schema(tags=["사용자"])
     def get(self, request, *args, **kwargs):
         user = self.get_object()
+        if isinstance(user, Response):
+            return user
         serializer = self.get_serializer(user)
         return Response(serializer.data)
 
     @extend_schema(tags=["사용자"])
     def put(self, request, *args, **kwargs):
         user = self.get_object()
+        if isinstance(user, Response):  # 에러 응답인 경우
+            return user
+
+        # 닉네임 중복 체크
+        new_nickname = request.data.get('nickname')
+        if new_nickname and User.objects.filter(nickname=new_nickname).exclude(user_id=user.user_id).exists():
+            return Response(
+                {
+                    "error": "닉네임 중복",
+                    "message": "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         serializer = self.get_serializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
 
 class UserDeleteView(generics.DestroyAPIView):
     queryset = User.objects.all()
@@ -79,6 +129,18 @@ class UserDeleteView(generics.DestroyAPIView):
         user.is_active = False
         user.save()
         return Response(status=204)
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(tags=["사용자"])
+    def post(self, request):
+        logout(request)
+        return Response(
+            {"message": "로그아웃이 완료되었습니다."}, status=status.HTTP_200_OK
+        )
+
 
 class SocialLoginView(APIView):
     @extend_schema(tags=["사용자"])
@@ -161,7 +223,7 @@ class NaverLoginView(APIView):
             "client_id": os.getenv("NAVER_CLIENT_ID"),
             "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
             "code": code,
-            "state": state
+            "state": state,
         }
 
         # 네이버 토큰 받기
@@ -184,7 +246,7 @@ class KakaoLoginView(APIView):
             "grant_type": "authorization_code",
             "client_id": os.getenv("KAKAO_CLIENT_ID"),
             "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"),
-            "code": code
+            "code": code,
         }
 
         # 카카오 토큰 받기

@@ -55,6 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     nickname = models.CharField(max_length=30, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    is_birth_public = models.BooleanField(default=True)
 
     objects = UserManager()
 
