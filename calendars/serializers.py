@@ -1,5 +1,4 @@
 from rest_framework import serializers
-
 from .models import Calendar, Subscription
 
 
@@ -23,9 +22,20 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 
     # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
     calendar_id = serializers.PrimaryKeyRelatedField(
-        queryset=Calendar.objects.all(), source="calendar", write_only=True
+        queryset=Calendar.objects.all(),
+        source="calendar",
+        write_only=True,
     )
 
     class Meta:
         model = Subscription
         fields = ["id", "user", "calendar", "calendar_id", "created_at"]
+        read_only_fields = ["user", "created_at"]  # 사용자는 서버에서 설정
+
+    def create(self, validated_data):
+        """
+        구독 생성 시 현재 요청 사용자를 user로 설정
+        """
+        user = self.context["request"].user  # 요청 사용자 가져오기
+        subscription = Subscription.objects.create(user=user, **validated_data)
+        return subscription

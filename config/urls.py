@@ -27,6 +27,7 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path("api/calendars/", include("calendars.urls")),  # 캘린더 앱 URL 포함
     path("api/events/<int:event_id>/", include("comment.urls")),
     path("api/users/<str:user_id>/", include("favorite_event.urls")),
 ]
