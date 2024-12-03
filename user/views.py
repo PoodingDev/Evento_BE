@@ -147,3 +147,51 @@ class SocialLoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class NaverLoginView(APIView):
+    @extend_schema(tags=["사용자"])
+    def post(self, request):
+        code = request.data.get("code")
+        state = request.data.get("state")
+
+        token_url = "https://nid.naver.com/oauth2.0/token"
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": os.getenv("NAVER_CLIENT_ID"),
+            "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
+            "code": code,
+            "state": state
+        }
+
+        # 네이버 토큰 받기
+        token_response = requests.post(token_url, data=data)
+        access_token = token_response.json().get("access_token")
+
+        # 사용자 정보 가져오기
+        user_info_url = "https://openapi.naver.com/v1/nid/me"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        user_info = requests.get(user_info_url, headers=headers).json()
+
+
+class KakaoLoginView(APIView):
+    @extend_schema(tags=["사용자"])
+    def post(self, request):
+        code = request.data.get("code")
+
+        token_url = "https://kauth.kakao.com/oauth/token"
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": os.getenv("KAKAO_CLIENT_ID"),
+            "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"),
+            "code": code
+        }
+
+        # 카카오 토큰 받기
+        token_response = requests.post(token_url, data=data)
+        access_token = token_response.json().get("access_token")
+
+        # 사용자 정보 가져오기
+        user_info_url = "https://kapi.kakao.com/v2/user/me"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        user_info = requests.get(user_info_url, headers=headers).json()
