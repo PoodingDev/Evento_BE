@@ -7,6 +7,7 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.db import models
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -20,10 +21,8 @@ class UserManager(BaseUserManager):
             raise ValueError("Users must have a username")
         if not birth:
             raise ValueError("Users must have a birth date")
-        if not password:
-            raise ValueError("Users must have a password")
 
-        nickname = self.generate_random_nickname()
+        nickname = nickname or self.generate_random_nickname()
 
         user = self.model(
             email=self.normalize_email(email),
