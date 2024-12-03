@@ -1,9 +1,15 @@
-
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, DestroyAPIView, ListAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.filters import SearchFilter
-from .models import Calendar, Subscription
+from rest_framework.generics import (
+    DestroyAPIView,
+    ListAPIView,
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
+from rest_framework.permissions import IsAuthenticated
+
 from user.models import User
+
+from .models import Calendar, Subscription
 from .serializers import CalendarSerializer, SubscriptionSerializer
 
 
@@ -11,6 +17,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     """
     캘린더 목록 조회 및 생성
     """
+
     queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
     # permission_classes = [IsAuthenticated]  # 로그인한 사용자만 접근 가능
@@ -29,6 +36,7 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     """
     캘린더 상세 조회, 수정, 삭제
     """
+
     queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
     permission_classes = [IsAuthenticated]
@@ -42,6 +50,7 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
     """
     구독한 캘린더 조회 및 구독 추가
     """
+
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
 
@@ -58,6 +67,7 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
     """
     구독 삭제
     """
+
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
 
@@ -65,15 +75,17 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
         # 현재 사용자의 구독 정보만 반환
         return Subscription.objects.filter(user=self.request.user)
 
+
 # 캘린더 검색
 class CalendarSearchAPIView(ListAPIView):
     serializer_class = CalendarSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter]
-    search_fields = ['name', 'creator__nickname']  # 닉네임 검색 가능
+    search_fields = ["name", "creator__nickname"]  # 닉네임 검색 가능
 
     def get_queryset(self):
         return Calendar.objects.filter(is_public=True)
+
 
 class AdminCalendarsAPIView(ListAPIView):
     serializer_class = CalendarSerializer
@@ -88,5 +100,5 @@ class CalendarMembersAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        calendar_id = self.kwargs.get('pk')
+        calendar_id = self.kwargs.get("pk")
         return User.objects.filter(created_calendars__calendar_id=calendar_id)
