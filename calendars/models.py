@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from user.models import User
 
+
 class Calendar(models.Model):
     calendar_id = models.BigIntegerField(primary_key=True)
     name = models.CharField(max_length=100)
