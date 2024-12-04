@@ -11,6 +11,7 @@ class EventListCreateAPIView(ListCreateAPIView):
     """
     Event 목록 조회 및 생성
     """
+
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
@@ -24,6 +25,7 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     """
     Event 상세 조회, 수정, 삭제
     """
+
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]

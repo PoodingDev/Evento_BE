@@ -16,6 +16,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     """
     캘린더 목록 조회 및 생성
     """
+
     queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
     # permission_classes = [IsAuthenticated]
@@ -37,6 +38,7 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     """
     캘린더 상세 조회, 수정, 삭제
     """
+
     queryset = Calendar.objects.all()
     serializer_class = CalendarSerializer
     # permission_classes = [IsAuthenticated]
@@ -53,6 +55,7 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
     """
     구독한 캘린더 조회 및 구독 추가
     """
+
     serializer_class = SubscriptionSerializer
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]  # 인증 없이 접근 가능
@@ -73,6 +76,7 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
     """
     구독 삭제
     """
+
     serializer_class = SubscriptionSerializer
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]  # 인증 없이 접근 가능
@@ -88,6 +92,7 @@ class CalendarSearchAPIView(ListAPIView):
     """
     공개된 캘린더 검색
     """
+
     serializer_class = CalendarSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter]
@@ -102,6 +107,7 @@ class AdminCalendarsAPIView(ListAPIView):
     """
     관리 권한이 있는 캘린더 목록 조회
     """
+
     serializer_class = CalendarSerializer
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]  # 인증 없이 접근 가능
@@ -117,6 +123,7 @@ class CalendarMembersAPIView(ListAPIView):
     """
     캘린더에 속한 관리자 멤버 조회
     """
+
     serializer_class = SubscriptionSerializer
     # permission_classes = [IsAuthenticated]
     permission_classes = [AllowAny]  # 인증 없이 접근 가능
