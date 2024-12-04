@@ -98,14 +98,19 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
             return user
 
         # 닉네임 중복 체크
-        new_nickname = request.data.get('nickname')
-        if new_nickname and User.objects.filter(nickname=new_nickname).exclude(user_id=user.user_id).exists():
+        new_nickname = request.data.get("nickname")
+        if (
+            new_nickname
+            and User.objects.filter(nickname=new_nickname)
+            .exclude(user_id=user.user_id)
+            .exists()
+        ):
             return Response(
                 {
                     "error": "닉네임 중복",
-                    "message": "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요."
+                    "message": "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.",
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         serializer = self.get_serializer(user, data=request.data, partial=True)
@@ -142,7 +147,7 @@ class LogoutView(APIView):
         )
 
 
-class SocialLoginView(APIView):
+class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
