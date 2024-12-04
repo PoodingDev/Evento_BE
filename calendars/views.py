@@ -5,9 +5,10 @@ from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveUpdateDestroyAPIView,
 )
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from user.models import User
+
 from .models import Calendar, Subscription
 from .serializers import CalendarSerializer, SubscriptionSerializer
 
