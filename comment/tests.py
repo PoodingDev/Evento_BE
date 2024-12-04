@@ -14,7 +14,6 @@ class CommentTests(APITestCase):
     def setUp(self):
         # 테스트용 관리자 생성
         self.admin = User.objects.create_user(
-            user_id="testadmin",
             email="testadmin@test.com",
             username="testadmin",
             birth=timezone.now(),
@@ -64,7 +63,7 @@ class CommentTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Comment.objects.count(), 2)
         self.assertEqual(response.data["content"], "새로운 댓글")
-        self.assertEqual(response.data["admin_nickname"], "테스트관리자")
+        self.assertEqual(response.data["admin_nickname"], self.admin.nickname)
 
     def test_get_comment_list(self):
         """댓글 목록 조회 테스트"""
@@ -123,7 +122,6 @@ class CommentTests(APITestCase):
         """권한 없는 사용자 접근 테스트"""
         # 권한 없는 일반 사용자 생성
         normal_user = User.objects.create_user(
-            user_id="normaluser",
             email="normal@test.com",
             username="normaluser",
             birth=timezone.now(),
