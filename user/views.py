@@ -205,13 +205,14 @@ class NaverLoginView(APIView):
             user.save()
 
         refresh = RefreshToken.for_user(user)
-        return Response(
+        response = Response(
             {
                 "access": str(refresh.access_token),
-                "refresh": str(refresh),
             },
             status=status.HTTP_200_OK,
         )
+        response.set_cookie('refresh', str(refresh), httponly=True, samesite='Lax')
+        return response
 
 
 class KakaoLoginView(APIView):
@@ -274,14 +275,14 @@ class KakaoLoginView(APIView):
             user.save()
 
         refresh = RefreshToken.for_user(user)
-        return Response(
+        response = Response(
             {
                 "access": str(refresh.access_token),
-                "refresh": str(refresh),
             },
             status=status.HTTP_200_OK,
         )
-
+        response.set_cookie('refresh', str(refresh), httponly=True)
+        return response
 
 class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
@@ -341,10 +342,11 @@ class GoogleLoginView(APIView):
             user.save()
 
         refresh = RefreshToken.for_user(user)
-        return Response(
+        response = Response(
             {
                 "access": str(refresh.access_token),
-                "refresh": str(refresh),
             },
             status=status.HTTP_200_OK,
         )
+        response.set_cookie('refresh', str(refresh), httponly=True, samesite='Lax')
+        return response
