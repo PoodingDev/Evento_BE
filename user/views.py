@@ -142,11 +142,41 @@ class LogoutView(APIView):
         )
 
 
-class SocialLoginView(APIView):
+class NaverLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
         state = request.data.get("state")
+
+        if not code or not state:
+            return JsonResponse(
+                {"error":"인가 코드와 state값이 모두 필요함"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token_url = "https://nid.naver.com/oauth2.0/token"
+        data = {
+            "grant_type": "authorization_code",
+            "client_id": os.getenv("NAVER_CLIENT_ID"),
+            "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
+            "code": code,
+            "state": state,
+        }
+
+        # 네이버 토큰 받기
+        token_response = requests.post(token_url, data=data)
+        access_token = token_response.json().get("access_token")
+
+        # 사용자 정보 가져오기
+        user_info_url = "https://openapi.naver.com/v1/nid/me"
+        headers = {"Authorization": f"Bearer {access_token}"}
+        user_info = requests.get(user_info_url, headers=headers).json()
+
+
+class GoogleLoginView(APIView):
+    @extend_schema(tags=["사용자"])
+    def post(self, request):
+        code = request.data.get("code")
         if not code:
             return JsonResponse(
                 {"error": "인가 코드가 제공되지 않았습니다."},
@@ -160,7 +190,6 @@ class SocialLoginView(APIView):
             "client_secret": os.getenv("CLIENT_SECRET"),
             "redirect_uri": os.getenv("REDIRECT_URI"),
             "grant_type": "authorization_code",
-            "state": state,
         }
 
         response = requests.post(token_url, data=data)
@@ -211,37 +240,16 @@ class SocialLoginView(APIView):
         )
 
 
-class NaverLoginView(APIView):
-    @extend_schema(tags=["사용자"])
-    def post(self, request):
-        code = request.data.get("code")
-        state = request.data.get("state")
-
-        token_url = "https://nid.naver.com/oauth2.0/token"
-        data = {
-            "grant_type": "authorization_code",
-            "client_id": os.getenv("NAVER_CLIENT_ID"),
-            "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
-            "code": code,
-            "state": state,
-        }
-
-        # 네이버 토큰 받기
-        token_response = requests.post(token_url, data=data)
-        access_token = token_response.json().get("access_token")
-
-        # 사용자 정보 가져오기
-        user_info_url = "https://openapi.naver.com/v1/nid/me"
-        headers = {"Authorization": f"Bearer {access_token}"}
-        user_info = requests.get(user_info_url, headers=headers).json()
-
-
 class KakaoLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
+        if not code:
+            return JsonResponse(
+                {"error":"인가코드가 제공되자 않았습니다"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        token_url = "https://kauth.kakao.com/oauth/token"
         data = {
             "grant_type": "authorization_code",
             "client_id": os.getenv("KAKAO_CLIENT_ID"),
