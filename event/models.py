@@ -14,6 +14,7 @@ class Event(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     admin_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="events")
+    is_public = models.BooleanField(default=False)  # 공개 여부 필드
     # location = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
