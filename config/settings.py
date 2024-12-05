@@ -34,7 +34,10 @@ DEBUG = env("DEBUG")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "*",
+    "ec2-3-39-223-47.ap-northeast-2.compute.amazonaws.com",
+]
 
 
 # Application definition
@@ -48,8 +51,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # rest_framework
     "rest_framework",
+    "rest_framework.authtoken",
     "drf_spectacular",
     "psycopg2",
+    "corsheaders",
     # apps
     "user",
     "calendars",
@@ -57,7 +62,6 @@ INSTALLED_APPS = [
     "event",
     "comment",
     "comment_like",
-    "subscription",
     "favorite_event",
 ]
 
@@ -69,11 +73,34 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
 }
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+)
 
 ROOT_URLCONF = "config.urls"
 
@@ -146,9 +173,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "user.User"
+SIMPLE_JWT = {
+    "USER_ID_FIELD": "user_id",
+}

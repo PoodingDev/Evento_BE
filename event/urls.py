@@ -3,9 +3,9 @@ from django.urls import path
 from .views import EventListCreateAPIView, EventRetrieveUpdateDestroyAPIView
 
 urlpatterns = [
-    path("events/", EventListCreateAPIView.as_view(), name="event-list-create"),
+    path("", EventListCreateAPIView.as_view(), name="event-list-create"),
     path(
-        "events/<int:pk>/",
+        "<int:pk>/",
         EventRetrieveUpdateDestroyAPIView.as_view(),
         name="event-detail",
     ),

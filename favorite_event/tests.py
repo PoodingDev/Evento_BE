@@ -14,7 +14,6 @@ class FavoriteEventTests(APITestCase):
     def setUp(self):
         # 테스트용 사용자 생성
         self.user = User.objects.create_user(
-            user_id="testuser1",
             email="test@test.com",
             username="testuser",
             birth=timezone.now(),
@@ -24,7 +23,6 @@ class FavoriteEventTests(APITestCase):
 
         # 다른 테스트용 사용자 생성
         self.other_user = User.objects.create_user(
-            user_id="testuser2",
             email="other@test.com",
             username="otheruser",
             birth=timezone.now(),
@@ -108,12 +106,13 @@ class FavoriteEventTests(APITestCase):
         self.assertEqual(response.data["error"], "삭제 실패")
 
     def test_get_nonexistent_user(self):
-        # 존재하지 않는 사용자의 즐겨찾기 조회 테스트
+        # 존재하지 않는 사용자의 즐겨���기 조회 테스트
         # 슈퍼유저로 변경하여 권한 문제 해결
         self.user.is_superuser = True
         self.user.save()
 
-        url = reverse("favorites:favorite-list", kwargs={"user_id": "nonexistent"})
+        # 존재하지 않는 사용자 ID로 수정
+        url = reverse("favorites:favorite-list", kwargs={"user_id": 999})  # 숫자로 변경
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

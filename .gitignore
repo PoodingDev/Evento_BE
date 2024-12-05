@@ -266,4 +266,10 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python,django
 
 .idea/
+# Ignore everything in migrations except __init__.py
+# COMMENT OUT or REMOVE THIS LINE:
+# */migrations/*.py
+
+# Explicitly allow migration files
+!*/migrations/*.py
 
