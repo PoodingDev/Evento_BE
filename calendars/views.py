@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
     DestroyAPIView,

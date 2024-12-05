@@ -13,4 +13,6 @@ urlpatterns = [
     path("api/users/", include("user.urls")),
     path("api/events/<int:event_id>/", include("comment.urls")),
     path("api/users/<str:user_id>/", include("favorite_event.urls")),
+    path("calendars/", include("calendars.urls")),
+    path("events/", include("event.urls")),
 ]

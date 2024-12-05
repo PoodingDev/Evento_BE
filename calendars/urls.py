@@ -11,11 +11,9 @@ from .views import (
 )
 
 urlpatterns = [
+    path("", CalendarListCreateAPIView.as_view(), name="calendar-list-create"),
     path(
-        "calendars/", CalendarListCreateAPIView.as_view(), name="calendar-list-create"
-    ),
-    path(
-        "calendars/<int:pk>/",
+        "<int:pk>/",
         CalendarRetrieveUpdateDestroyAPIView.as_view(),
         name="calendar-detail",
     ),
