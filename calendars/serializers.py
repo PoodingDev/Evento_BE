@@ -40,3 +40,33 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         user = self.context["request"].user  # 요청 사용자 가져오기
         subscription = Subscription.objects.create(user=user, **validated_data)
         return subscription
+
+class AdminInvitationSerializer(serializers.Serializer):
+    """
+    관리자 초대 코드 처리 Serializer
+    """
+
+    invitation_code = serializers.CharField(max_length=255, write_only=True)
+    calendar = CalendarSerializer(read_only=True)
+
+    def validate_invitation_code(self, value):
+        """
+        초대 코드를 검증하여 캘린더를 확인
+        """
+        try:
+            calendar = Calendar.objects.get(invitation_code=value)
+        except Calendar.DoesNotExist:
+            raise serializers.ValidationError("유효하지 않은 초대 코드입니다.")
+        self.calendar = calendar
+        return value
+
+    def save(self):
+        """
+        초대 코드를 사용해 사용자를 캘린더 관리자에 추가
+        """
+        user = self.context["request"].user  # 요청 사용자
+        if not hasattr(self, "calendar"):
+            raise serializers.ValidationError("초대 코드가 유효하지 않습니다.")
+        self.calendar.creator = user  # 관리자로 추가
+        self.calendar.save()
+        return self.calendar

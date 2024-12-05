@@ -1,4 +1,5 @@
 from django.urls import path
+from .views import AdminInvitationView
 
 from .views import (
     AdminCalendarsAPIView,
@@ -34,4 +35,9 @@ urlpatterns = [
         CalendarMembersAPIView.as_view(),
         name="calendar-members",
     ),
+    path(
+        "calendars/admins/invite/",
+        AdminInvitationView.as_view(),
+        name="admin-invitation",
+    ), # 관리자 초대 URL 추가
 ]
