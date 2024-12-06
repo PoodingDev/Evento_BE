@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -42,12 +44,16 @@ class Subscription(models.Model):
     def __str__(self):
         return f"{self.user} subscribed to {self.calendar}"
 
+
 class CalendarAdmin(models.Model):
     """
     캘린더 관리자 정보 저장
     """
+
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_calendars"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="admin_calendars",
     )
     calendar = models.ForeignKey(
         Calendar, on_delete=models.CASCADE, related_name="admins"

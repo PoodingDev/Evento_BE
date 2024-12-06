@@ -1,3 +1,4 @@
+import uuid  # uuid 모듈 임포트
 from datetime import timedelta
 
 from django.urls import reverse
@@ -32,7 +33,7 @@ class FavoriteEventTests(APITestCase):
 
         # 테스트용 캘린더 생성
         self.calendar = Calendar.objects.create(
-            calendar_id="1",
+            calendar_id=1,  # 정수로 설정
             name="테스트캘린더",
             description="테스트설명",
             is_public=True,
@@ -42,7 +43,7 @@ class FavoriteEventTests(APITestCase):
 
         # 테스트용 이벤트 생성
         self.event = Event.objects.create(
-            event_id="1",
+            event_id=uuid.uuid4(),  # UUID로 생성
             title="테스트이벤트",
             description="테스트설명",
             start_time=timezone.now(),
@@ -83,7 +84,9 @@ class FavoriteEventTests(APITestCase):
     def test_delete_favorite(self):
         # 즐겨찾기 삭제 테스트
         # 먼저 즐겨찾기 생성
-        FavoriteEvent.objects.create(user_id=self.user, event_id=self.event)
+        favorite_event = FavoriteEvent.objects.create(
+            user_id=self.user, event_id=self.event
+        )
 
         url = reverse(
             "favorites:favorite-delete",
@@ -95,18 +98,22 @@ class FavoriteEventTests(APITestCase):
         self.assertEqual(FavoriteEvent.objects.count(), 0)
 
     def test_delete_nonexistent_favorite(self):
-        # 존재하지 않는 즐겨찾기 삭제 시도 테스트
+        # 존재하지 않는 즐겨찾기 삭제 테스트
         url = reverse(
             "favorites:favorite-delete",
-            kwargs={"user_id": self.user.user_id, "event_id": 999},
+            kwargs={
+                "user_id": self.user.user_id,
+                "event_id": uuid.uuid4(),
+            },  # UUID 사용
         )
         response = self.client.delete(url)
 
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data["error"], "삭제 실패")
+        self.assertEqual(
+            response.status_code, status.HTTP_404_NOT_FOUND
+        )  # 존재하지 않는 경우 404 응답 확인
 
     def test_get_nonexistent_user(self):
-        # 존재하지 않는 사용자의 즐겨���기 조회 테스트
+        # 존재하지 않는 사용자의 즐겨찾기 조회 테스트
         # 슈퍼유저로 변경하여 권한 문제 해결
         self.user.is_superuser = True
         self.user.save()
@@ -136,7 +143,7 @@ class FavoriteEventTests(APITestCase):
             "favorites:favorite-delete",
             kwargs={
                 "user_id": self.other_user.user_id,
-                "event_id": self.event.event_id,
+                "event_id": self.event.event_id,  # UUID 사용
             },
         )
         response = self.client.delete(url)

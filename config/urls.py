@@ -7,11 +7,15 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Swagger 및 Schema 관련
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
     # User 관련
     path("api/users/", include("user.urls")),
     # 캘린더 관련
-    path('api/calendars/', include('calendars.urls')),  # 캘린더 앱 URL 등록
+    path("api/calendars/", include("calendars.urls")),  # 캘린더 앱 URL 등록
     # 이벤트 관련
     path("api/events/", include("event.urls")),
     # 댓글 관련 (특정 이벤트에 종속)

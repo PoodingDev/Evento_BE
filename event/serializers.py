@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import Event
 
 
@@ -61,5 +62,7 @@ class EventSerializer(serializers.ModelSerializer):
         - 특정 필드는 업데이트하지 못하도록 제한 가능.
         """
         if "admin_id" in validated_data:
-            raise serializers.ValidationError({"admin_id": "관리자를 변경할 수 없습니다."})
+            raise serializers.ValidationError(
+                {"admin_id": "관리자를 변경할 수 없습니다."}
+            )
         return super().update(instance, validated_data)

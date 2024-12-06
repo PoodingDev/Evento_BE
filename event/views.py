@@ -3,21 +3,30 @@ import csv
 with open("event_schedule.csv", "w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["title", "description", "start_time", "end_time", "is_public"])
-    writer.writerow(["Event 1", "Description 1", "2024-12-01T10:00:00", "2024-12-01T12:00:00", True])
-    writer.writerow(["Event 2", "Description 2", "2024-12-02T14:00:00", "2024-12-02T16:00:00", False])
+    writer.writerow(
+        ["Event 1", "Description 1", "2024-12-01T10:00:00", "2024-12-01T12:00:00", True]
+    )
+    writer.writerow(
+        [
+            "Event 2",
+            "Description 2",
+            "2024-12-02T14:00:00",
+            "2024-12-02T16:00:00",
+            False,
+        ]
+    )
 
 import pandas as pd
-
-from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.generics import (
-    ListAPIView,
     CreateAPIView,
+    ListAPIView,
     RetrieveUpdateDestroyAPIView,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from drf_spectacular.utils import extend_schema
+from rest_framework.views import APIView
 
 from .models import Event
 from .serializers import EventSerializer
@@ -28,6 +37,7 @@ class PublicEventListAPIView(ListAPIView):
     공개 이벤트 목록 조회
     - GET: 공개된 모든 이벤트를 조회합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]  # JWT 인증 필수
 
@@ -47,6 +57,7 @@ class PublicEventListCreateAPIView(CreateAPIView):
     공개 이벤트 생성
     - POST: 새로운 공개 이벤트를 생성합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -67,6 +78,7 @@ class PrivateEventListAPIView(ListAPIView):
     비공개 이벤트 목록 조회
     - GET: 요청한 사용자가 관리하는 비공개 이벤트만 조회합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -86,6 +98,7 @@ class PrivateEventListCreateAPIView(CreateAPIView):
     비공개 이벤트 생성
     - POST: 새로운 비공개 이벤트를 생성합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -108,6 +121,7 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     - PUT: 특정 이벤트 정보를 수정합니다.
     - DELETE: 특정 이벤트를 삭제합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -144,11 +158,13 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
             status=status.HTTP_204_NO_CONTENT,
         )
 
+
 class EventUploadView(APIView):
     """
     CSV 또는 Excel 파일로 이벤트 일괄 업로드/업데이트
     - POST: 파일을 업로드하여 이벤트를 생성하거나 업데이트합니다.
     """
+
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
@@ -173,10 +189,18 @@ class EventUploadView(APIView):
                     "application/json": {
                         "example": {
                             "created_events": [
-                                {"title": "Event 1", "start_time": "2024-12-01T10:00:00", "is_public": True},
+                                {
+                                    "title": "Event 1",
+                                    "start_time": "2024-12-01T10:00:00",
+                                    "is_public": True,
+                                },
                             ],
                             "updated_events": [
-                                {"title": "Event 2", "start_time": "2024-12-02T14:00:00", "is_public": False},
+                                {
+                                    "title": "Event 2",
+                                    "start_time": "2024-12-02T14:00:00",
+                                    "is_public": False,
+                                },
                             ],
                         }
                     }
@@ -186,7 +210,9 @@ class EventUploadView(APIView):
                 "description": "잘못된 요청",
                 "content": {
                     "application/json": {
-                        "example": {"error": "지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 사용하세요."}
+                        "example": {
+                            "error": "지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 사용하세요."
+                        }
                     }
                 },
             },
@@ -204,7 +230,9 @@ class EventUploadView(APIView):
         # 1. 파일 가져오기
         file = request.FILES.get("file")
         if not file:
-            return Response({"error": "파일을 업로드하세요."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "파일을 업로드하세요."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         # 2. 파일 형식 확인 및 데이터 로드
         try:
@@ -213,15 +241,35 @@ class EventUploadView(APIView):
             elif file.name.endswith(".xlsx"):
                 data = pd.read_excel(file)
             else:
-                return Response({"error": "지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 사용하세요."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "error": "지원하지 않는 파일 형식입니다. CSV 또는 Excel 파일을 사용하세요."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         except Exception as e:
-            return Response({"error": f"파일 처리 중 오류가 발생했습니다: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": f"파일 처리 중 오류가 발생했습니다: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 3. 필수 필드 확인
-        required_fields = ["calendar_id", "title", "description", "start_time", "end_time", "is_public"]
-        missing_fields = [field for field in required_fields if field not in data.columns]
+        required_fields = [
+            "calendar_id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "is_public",
+        ]
+        missing_fields = [
+            field for field in required_fields if field not in data.columns
+        ]
         if missing_fields:
-            return Response({"error": f"누락된 필드: {', '.join(missing_fields)}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": f"누락된 필드: {', '.join(missing_fields)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # 4. 데이터 처리
         created_events = []
@@ -243,12 +291,22 @@ class EventUploadView(APIView):
                         serializer.save(admin_id=request.user)
                         created_events.append(serializer.data)
                     else:
-                        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                        return Response(
+                            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                        )
             except Event.DoesNotExist:
-                return Response({"error": f"ID {event_id} 이벤트를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": f"ID {event_id} 이벤트를 찾을 수 없습니다."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
         # 5. 응답 반환
-        return Response({
-            "created_events": created_events,
-            "updated_events": [EventSerializer(event).data for event in updated_events],
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "created_events": created_events,
+                "updated_events": [
+                    EventSerializer(event).data for event in updated_events
+                ],
+            },
+            status=status.HTTP_200_OK,
+        )

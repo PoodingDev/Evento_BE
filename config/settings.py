@@ -34,11 +34,7 @@ DEBUG = env("DEBUG")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-ALLOWED_HOSTS = [
-    "evento.r-e.kr",
-    "localhost:5173",
-    "evento.kro.kr"
-    ]
+ALLOWED_HOSTS = ["evento.r-e.kr", "localhost:5173", "evento.kro.kr"]
 
 
 # Application definition
@@ -87,8 +83,8 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://localhost:5173",
-    "https://evento.kro.kr"
-        ]
+    "https://evento.kro.kr",
+]
 
 # 쿠키랑 헤더값 가져오기
 CORS_ALLOW_CREDENTIALS = True

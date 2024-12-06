@@ -41,6 +41,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         subscription = Subscription.objects.create(user=user, **validated_data)
         return subscription
 
+
 class AdminInvitationSerializer(serializers.Serializer):
     """
     관리자 초대 코드 처리 Serializer
