@@ -157,6 +157,11 @@ class GoogleLoginView(APIView):
                 {"error": "인가 코드가 제공되지 않았습니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if not state:
+            return JsonResponse(
+                {"error": "state가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token_url = "https://oauth2.googleapis.com/token"
         data = {
@@ -196,7 +201,7 @@ class GoogleLoginView(APIView):
                     {"error": "이 계정으로는 로그인할 수 없습니다."},
                     status=status.HTTP_403_FORBIDDEN,
                 )
-        except ObjectDoesNotExist:
+        except User.DoesNotExist:
             user = User.objects.create_user(
                 email=email,
                 username=user_info.get("name", ""),

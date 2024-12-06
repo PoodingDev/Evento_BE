@@ -35,9 +35,10 @@ DEBUG = env("DEBUG")
 # SECURITY WARNING: don't run with debug turned on in production!
 
 ALLOWED_HOSTS = [
-    "*",
-    "ec2-3-39-223-47.ap-northeast-2.compute.amazonaws.com",
-]
+    "evento.r-e.kr",
+    "localhost:5173",
+    "evento.kro.kr"
+    ]
 
 
 # Application definition
@@ -83,24 +84,14 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ],
 }
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_METHODS = (
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://localhost:5173",
+    "https://evento.kro.kr"
+        ]
 
-CORS_ALLOW_HEADERS = (
-    "accept",
-    "authorization",
-    "content-type",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-)
+# 쿠키랑 헤더값 가져오기
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "config.urls"
 
