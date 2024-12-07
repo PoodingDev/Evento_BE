@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     # apps
     "user",
     "calendars",
-    "calendaradmin",
+    # "calendaradmin",
     "event",
     "comment",
     "comment_like",

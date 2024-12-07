@@ -26,6 +26,7 @@ class Calendar(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        db_table = 'calendars'  # 테이블명 명시적 지정
 
     def save(self, *args, **kwargs):
         if not self.invitation_code:
