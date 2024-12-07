@@ -55,7 +55,7 @@ class AdminInvitationSerializer(serializers.Serializer):
     관리자 초대 코드 처리 Serializer
     """
 
-    invitation_code = serializers.CharField(max_length=255, write_only=True)
+    invitation_code = serializers.CharField(max_length=255, help_text="초대 코드", write_only=True)
     calendar = CalendarSerializer(read_only=True)
 
     def validate_invitation_code(self, value):

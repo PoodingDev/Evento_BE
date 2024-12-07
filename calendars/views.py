@@ -15,7 +15,9 @@ from user.models import User
 from .models import Calendar, Subscription
 from .serializers import (
     CalendarSerializer,
-    SubscriptionSerializer
+    SubscriptionSerializer, AdminInvitationSerializer
+
+
 )
 
 class CalendarListCreateAPIView(ListCreateAPIView):
@@ -259,43 +261,6 @@ class CalendarMembersAPIView(ListAPIView):
             },
             "required": ["invitation_code"],
         },
-        responses={
-            200: {
-                "description": "관리자 추가 성공",
-                "content": {
-                    "application/json": {
-                        "example": {
-                            "message": "캘린더의 관리자로 성공적으로 추가되었습니다.",
-                            "calendar": {
-                                "calendar_id": 1,
-                                "name": "Test Calendar",
-                                "description": "테스트 캘린더입니다.",
-                                "is_public": True,
-                                "color": "#FFFFFF",
-                                "creator": 1,
-                                "invitation_code": "ABC123",
-                            },
-                        }
-                    }
-                },
-            },
-            400: {
-                "description": "잘못된 요청 또는 이미 관리자",
-                "content": {
-                    "application/json": {
-                        "example": {"error": "캘린더 생성자는 이미 관리자입니다."}
-                    }
-                },
-            },
-            404: {
-                "description": "초대 코드가 유효하지 않음",
-                "content": {
-                    "application/json": {
-                        "example": {"error": "유효하지 않은 초대 코드입니다."}
-                    }
-                },
-            },
-        },
     )
 
     def get_queryset(self):
@@ -316,24 +281,24 @@ class AdminInvitationView(APIView):
     @extend_schema(
         summary="관리자 초대",
         description="초대 코드를 입력받아 해당 캘린더의 관리자로 추가합니다.",
-        request={
-            "type": "object",
-            "properties": {
-                "invitation_code": {
-                    "type": "string",
-                    "description": "캘린더 초대 코드",
-                    "example": "ABC123",
-                },
-            },
-            "required": ["invitation_code"],
-        },
+        # request={
+        #     "type": "object",
+        #     "properties": {
+        #         "invitation_code": {
+        #             "type": "string",
+        #             "description": "캘린더 초대 코드",
+        #             "example": "ABC123",
+        #         },
+        #     },
+        #     "required": ["invitation_code"],
+        # },
         responses={
             200: {
                 "description": "관리자 추가 성공",
                 "content": {
                     "application/json": {
                         "example": {
-                            "message": "캘린더의 관리자로 성공적으로 추가되었습니다.",
+                            "message": "관리자로 성공적으로 추가되었습니다.",
                             "calendar": {
                                 "calendar_id": 1,
                                 "name": "Test Calendar",
@@ -367,6 +332,8 @@ class AdminInvitationView(APIView):
     )
 
     def post(self, request, *args, **kwargs):
+        serializer = AdminInvitationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         invitation_code = request.data.get("invitation_code")
         if not invitation_code:
             return Response(
@@ -399,15 +366,23 @@ class AdminInvitationView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        # 관리자로 추가
-        user.created_calendars.add(calendar)
-        return Response(
-            {
-                "message": f"{calendar.name} 캘린더의 관리자로 성공적으로 추가되었습니다.",
-                "calendar": CalendarSerializer(calendar).data,
-            },
-            status=status.HTTP_200_OK,
-        )
+            # 관리자로 추가
+            calendar.admins.add(user)
+            return Response(
+                {
+                    "message": "관리자로 성공적으로 추가되었습니다.",
+                    "calendar": {
+                        "calendar_id": calendar.calendar_id,
+                        "name": calendar.name,
+                        "description": calendar.description,
+                        "is_public": calendar.is_public,
+                        "color": calendar.color,
+                        "creator": calendar.creator.id,
+                        "invitation_code": calendar.invitation_code,
+                    },
+                },
+                status=200,
+            )
 
 class ActiveSubscriptionsAPIView(ListAPIView):
     """
@@ -481,7 +456,10 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
                 "subscription_ids": {
                     "type": "array",
                     "items": {"type": "integer"},
-                    "description": "표시할 구독 캘린더 ID 목록",
+                },
+                "is_on_calendar": {
+                    "type": "boolean",
+                    "description": "캘린더 표시 여부"
                 }
             },
         },
@@ -491,6 +469,7 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
     )
     def put(self, request):
         subscription_ids = request.data.get("subscription_ids", [])
+        is_on_calendar = request.data.get("is_on_calendar", True)  # 기본값 True
         user = request.user
 
         # 트랜잭션으로 모든 작업 처리

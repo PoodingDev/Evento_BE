@@ -9,9 +9,9 @@ from .views import (
     SubscriptionDeleteAPIView,
     SubscriptionListCreateAPIView,
     ActiveSubscriptionsAPIView,
-    UpdateActiveStatusAPIView
+    UpdateActiveStatusAPIView,
+    UpdateSubscriptionVisibilityAPIView,
 )
-
 
 urlpatterns = [
     # 캘린더 목록 조회 및 생성
@@ -38,4 +38,7 @@ urlpatterns = [
 
     path("subscriptions/active/", ActiveSubscriptionsAPIView.as_view(), name="active-subscriptions"),
     path("subscriptions/update-status/", UpdateActiveStatusAPIView.as_view(), name="update-active-status"),
+    path("subscriptions/delete/", SubscriptionDeleteAPIView.as_view(), name="subscription-delete"),
+    # 구독 표시 여부 업데이트
+    path("subscriptions/update-visibility/", UpdateSubscriptionVisibilityAPIView.as_view(), name="update-subscription-visibility"),
 ]
