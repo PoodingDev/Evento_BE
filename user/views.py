@@ -152,6 +152,28 @@ class LogoutView(APIView):
         )
 
 
+def get_redirect_uri(service: str, request) -> str:
+    """
+    특정 서비스의 리다이렉트 URL을 동적으로 선택.
+    :param service: "GOOGLE", "KAKAO", "NAVER" 중 하나.
+    :param request: Django의 HttpRequest 객체.
+    :return: 적절한 리다이렉트 URL.
+    """
+    # 환경변수에서 URI 리스트 가져오기
+    redirect_uris = os.getenv(f"{service}_REDIRECT_URIS", "").split(",")
+
+    # 요청 Host 정보 확인
+    host = request.get_host()  # 예: localhost:8000, evento.kro.kr
+
+    # Host에 맞는 URL 반환
+    for uri in redirect_uris:
+        if host in uri:  # Host가 포함된 URI를 반환
+            return uri
+
+    # 기본값으로 첫 번째 URI 반환
+    return redirect_uris[0] if redirect_uris else None
+
+
 class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
@@ -162,7 +184,7 @@ class GoogleLoginView(APIView):
                     {"error": "인가 코드가 제공되지 않았습니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
+            redirect_uri = get_redirect_uri("GOOGLE", request)
             token_url = "https://oauth2.googleapis.com/token"
             data = {
                 "code": code,
@@ -174,8 +196,8 @@ class GoogleLoginView(APIView):
 
             # 요청 헤더 추가
             headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
             }
 
             response = requests.post(token_url, data=data, headers=headers)
@@ -196,13 +218,16 @@ class GoogleLoginView(APIView):
             userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
             userinfo_headers = {
                 "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json"
+                "Accept": "application/json",
             }
             userinfo_response = requests.get(userinfo_url, headers=userinfo_headers)
 
             if userinfo_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": userinfo_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": userinfo_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -234,7 +259,7 @@ class GoogleLoginView(APIView):
                                 "email": new_user.email,
                                 "username": new_user.username,
                                 "nickname": new_user.nickname,
-                            }
+                            },
                         },
                         status=status.HTTP_200_OK,
                     )
@@ -248,7 +273,7 @@ class GoogleLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -271,15 +296,14 @@ class GoogleLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -323,7 +347,10 @@ class NaverLoginView(APIView):
 
             if user_info_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": user_info_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": user_info_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -353,15 +380,14 @@ class NaverLoginView(APIView):
                         "email": user.email,
                         "username": user.username,
                         "nickname": user.nickname,
-                    }
+                    },
                 },
                 status=status.HTTP_200_OK,
             )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -386,8 +412,8 @@ class KakaoLoginView(APIView):
 
             # 요청 헤더 추가
             headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
             }
 
             token_response = requests.post(token_url, data=data, headers=headers)
@@ -408,13 +434,16 @@ class KakaoLoginView(APIView):
             user_info_url = "https://kapi.kakao.com/v2/user/me"
             user_headers = {
                 "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
             }
 
             user_info_response = requests.get(user_info_url, headers=user_headers)
             if user_info_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": user_info_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": user_info_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -446,7 +475,7 @@ class KakaoLoginView(APIView):
                                 "email": new_user.email,
                                 "username": new_user.username,
                                 "nickname": new_user.nickname,
-                            }
+                            },
                         },
                         status=status.HTTP_200_OK,
                     )
@@ -460,7 +489,7 @@ class KakaoLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -483,13 +512,12 @@ class KakaoLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
