@@ -34,7 +34,7 @@ DEBUG = env("DEBUG")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-ALLOWED_HOSTS = ["evento.r-e.kr", "localhost:5173", "evento.kro.kr"]
+ALLOWED_HOSTS = ["evento.r-e.kr", "localhost:5173", "evento.kro.kr", "127.0.0.1"]
 
 
 # Application definition
