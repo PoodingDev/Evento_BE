@@ -41,6 +41,15 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         subscription = Subscription.objects.create(user=user, **validated_data)
         return subscription
 
+    def update(self, instance, validated_data):
+        """
+        구독 데이터 업데이트 (is_active, is_on_calendar 상태 변경)
+        """
+        instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.is_on_calendar = validated_data.get("is_on_calendar", instance.is_on_calendar)
+        instance.save()
+        return instance
+
 class AdminInvitationSerializer(serializers.Serializer):
     """
     관리자 초대 코드 처리 Serializer
@@ -57,6 +66,8 @@ class AdminInvitationSerializer(serializers.Serializer):
             calendar = Calendar.objects.get(invitation_code=value)
         except Calendar.DoesNotExist:
             raise serializers.ValidationError("유효하지 않은 초대 코드입니다.")
+        if self.context["request"].user in calendar.admins.all():
+            raise serializers.ValidationError("이미 캘린더 관리자로 추가되었습니다.")
         self.calendar = calendar
         return value
 
@@ -67,6 +78,5 @@ class AdminInvitationSerializer(serializers.Serializer):
         user = self.context["request"].user  # 요청 사용자
         if not hasattr(self, "calendar"):
             raise serializers.ValidationError("초대 코드가 유효하지 않습니다.")
-        self.calendar.creator = user  # 관리자로 추가
-        self.calendar.save()
+        self.calendar.admins.add(user)  # 관리자로 추가
         return self.calendar

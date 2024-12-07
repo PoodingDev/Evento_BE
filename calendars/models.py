@@ -7,50 +7,77 @@ from user.models import User
 class Calendar(models.Model):
     calendar_id = models.BigIntegerField(primary_key=True)
     name = models.CharField(max_length=100)
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_calendars'
+    )
+    admins = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through="CalendarAdmin",
+        related_name='admin_calendars',
+        blank=True
+    )
     description = models.TextField(null=True, blank=True)
     is_public = models.BooleanField(default=True)
     color = models.CharField(max_length=7)
-    creator = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="created_calendars"
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
     invitation_code = models.CharField(max_length=255, null=True, blank=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
     def save(self, *args, **kwargs):
-        """
-        캘린더 저장 시 고유한 초대 코드 생성
-        """
         if not self.invitation_code:
-            self.invitation_code = str(uuid.uuid4())[:6]  # 6자리 고유 코드 생성
+            self.invitation_code = self.generate_invitation_code()
         super().save(*args, **kwargs)
+
+        # 생성자를 자동으로 관리자로 추가
+        if self.pk and not self.admins.filter(id=self.creator.id).exists():
+            self.admins.add(self.creator)
 
     def __str__(self):
         return f"{self.name} (ID: {self.calendar_id})"
 
+    @staticmethod
+    def generate_invitation_code():
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+    def has_admin_permission(self, user):
+        """사용자의 관리자 권한 확인"""
+        return user == self.creator or self.admins.filter(id=user.id).exists()
+
 
 class Subscription(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscriptions"
-    )
-    calendar = models.ForeignKey(
-        Calendar, on_delete=models.CASCADE, related_name="subscribers"
-    )
+    user = models.ForeignKey("user.User", on_delete=models.CASCADE, related_name="subscriptions")
+    calendar = models.ForeignKey("calendars.Calendar", on_delete=models.CASCADE, related_name="subscriptions")
     created_at = models.DateTimeField(auto_now_add=True)
+    is_visible = models.BooleanField(default=True)  # 사이드바 표시 여부
+    is_on_calendar = models.BooleanField(default=True)  # 캘린더에 표시 여부
+    is_active = models.BooleanField(default=False)  # 체크박스 상태
 
     class Meta:
         unique_together = ("user", "calendar")
+        ordering = ("created_at",)
 
     def __str__(self):
-        return f"{self.user} subscribed to {self.calendar}"
+        return f"{self.user.nickname} subscribed to {self.calendar.name}"
+
+
 
 class CalendarAdmin(models.Model):
     """
     캘린더 관리자 정보 저장
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="admin_calendars"
+        User,
+        on_delete=models.CASCADE,
+        related_name="calendar_admin_roles"
     )
     calendar = models.ForeignKey(
-        Calendar, on_delete=models.CASCADE, related_name="admins"
+        Calendar,
+        on_delete=models.CASCADE,
+        related_name="calendar_admins"
     )
     added_at = models.DateTimeField(auto_now_add=True)
 
