@@ -1,4 +1,5 @@
 import os
+
 import requests
 from django.contrib.auth import logout
 from django.core.exceptions import ObjectDoesNotExist
@@ -8,8 +9,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
 
@@ -235,6 +237,7 @@ class GoogleLoginView(APIView):
                 status=status.HTTP_200_OK,
             )
 
+
 class NaverLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
@@ -325,6 +328,7 @@ class NaverLoginView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+
 
 class KakaoLoginView(APIView):
     @extend_schema(tags=["사용자"])
