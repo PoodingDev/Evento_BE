@@ -1,9 +1,7 @@
 import os
-
 import requests
 from django.contrib.auth import logout
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
 from django.utils import timezone
 from dotenv import load_dotenv
 from drf_spectacular.utils import extend_schema
@@ -11,6 +9,11 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import User
+from .serializers import UserSerializer, UserUpdateSerializer
+
+load_dotenv()
 
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
@@ -151,15 +154,9 @@ class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
-        state = request.data.get("state")
         if not code:
-            return JsonResponse(
+            return Response(
                 {"error": "인가 코드가 제공되지 않았습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        if not state:
-            return JsonResponse(
-                {"error": "state가 제공되지 않았습니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -170,7 +167,6 @@ class GoogleLoginView(APIView):
             "client_secret": os.getenv("CLIENT_SECRET"),
             "redirect_uri": os.getenv("REDIRECT_URI"),
             "grant_type": "authorization_code",
-            "state": state,
         }
 
         response = requests.post(token_url, data=data)
@@ -197,10 +193,30 @@ class GoogleLoginView(APIView):
         try:
             user = User.objects.get(email=email)
             if not user.is_active:
-                return JsonResponse(
-                    {"error": "이 계정으로는 로그인할 수 없습니다."},
-                    status=status.HTTP_403_FORBIDDEN,
+                new_user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("name", ""),
+                    birth=timezone.now().date(),
+                    nickname=user_info.get("given_name", ""),
                 )
+                new_user.set_unusable_password()
+                new_user.save()
+                refresh = RefreshToken.for_user(new_user)
+                return Response(
+                    {
+                        "access": str(refresh.access_token),
+                        "refresh": str(refresh),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
         except User.DoesNotExist:
             user = User.objects.create_user(
                 email=email,
@@ -210,22 +226,30 @@ class GoogleLoginView(APIView):
             )
             user.set_unusable_password()
             user.save()
-
-        refresh = RefreshToken.for_user(user)
-        return JsonResponse(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            },
-            status=status.HTTP_200_OK,
-        )
-
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
 
 class NaverLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
         state = request.data.get("state")
+        if not code:
+            return Response(
+                {"error": "인가 코드가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not state:
+            return Response(
+                {"error": "state가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token_url = "https://nid.naver.com/oauth2.0/token"
         data = {
@@ -236,20 +260,81 @@ class NaverLoginView(APIView):
             "state": state,
         }
 
-        # 네이버 토큰 받기
         token_response = requests.post(token_url, data=data)
-        access_token = token_response.json().get("access_token")
+        if token_response.status_code != 200:
+            return Response(
+                {"error": "토큰 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        # 사용자 정보 가져오기
+        access_token = token_response.json().get("access_token")
         user_info_url = "https://openapi.naver.com/v1/nid/me"
         headers = {"Authorization": f"Bearer {access_token}"}
-        user_info = requests.get(user_info_url, headers=headers).json()
+        user_info_response = requests.get(user_info_url, headers=headers)
 
+        if user_info_response.status_code != 200:
+            return Response(
+                {"error": "유저정보 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user_info = user_info_response.json().get("response", {})
+        email = user_info.get("email")
+
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                new_user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("name", ""),
+                    birth=timezone.now().date(),
+                    nickname=user_info.get("nickname", ""),
+                )
+                new_user.set_unusable_password()
+                new_user.save()
+                refresh = RefreshToken.for_user(new_user)
+                return Response(
+                    {
+                        "access": str(refresh.access_token),
+                        "refresh": str(refresh),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                email=email,
+                username=user_info.get("name", ""),
+                birth=timezone.now().date(),
+                nickname=user_info.get("nickname", ""),
+            )
+            user.set_unusable_password()
+            user.save()
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
 
 class KakaoLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
+        if not code:
+            return Response(
+                {"error": "인가 코드가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token_url = "https://kauth.kakao.com/oauth/token"
         data = {
@@ -259,11 +344,68 @@ class KakaoLoginView(APIView):
             "code": code,
         }
 
-        # 카카오 토큰 받기
         token_response = requests.post(token_url, data=data)
-        access_token = token_response.json().get("access_token")
+        if token_response.status_code != 200:
+            return Response(
+                {"error": "토큰 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
-        # 사용자 정보 가져오기
+        access_token = token_response.json().get("access_token")
         user_info_url = "https://kapi.kakao.com/v2/user/me"
         headers = {"Authorization": f"Bearer {access_token}"}
-        user_info = requests.get(user_info_url, headers=headers).json()
+        user_info_response = requests.get(user_info_url, headers=headers)
+
+        if user_info_response.status_code != 200:
+            return Response(
+                {"error": "유저정보 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user_info = user_info_response.json()
+        email = user_info.get("kakao_account", {}).get("email")
+
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                new_user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("properties", {}).get("nickname", ""),
+                    birth=timezone.now().date(),
+                    nickname=user_info.get("properties", {}).get("nickname", ""),
+                )
+                new_user.set_unusable_password()
+                new_user.save()
+                refresh = RefreshToken.for_user(new_user)
+                return Response(
+                    {
+                        "access": str(refresh.access_token),
+                        "refresh": str(refresh),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                email=email,
+                username=user_info.get("properties", {}).get("nickname", ""),
+                birth=timezone.now().date(),
+                nickname=user_info.get("properties", {}).get("nickname", ""),
+            )
+            user.set_unusable_password()
+            user.save()
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_200_OK,
+            )
