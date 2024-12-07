@@ -28,6 +28,13 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source="user_id")
+    user_email = serializers.EmailField(source="email")
+    user_name = serializers.CharField(source="username")
+    user_birth = serializers.DateField(source="birth")
+    user_nickname = serializers.CharField(source="nickname")
+
     class Meta:
         model = User
-        fields = ["nickname", "birth", "is_birth_public"]
+        fields = ["user_id", "user_email", "user_name", "user_birth", "user_nickname"]
+        read_only_fields = ["user_id"]
