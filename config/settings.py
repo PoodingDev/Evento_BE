@@ -84,6 +84,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://localhost:5173",
     "https://evento.kro.kr",
+    "https://evento.r-e.kr",
 ]
 
 # 쿠키랑 헤더값 가져오기

@@ -178,6 +178,7 @@ class GoogleLoginView(APIView):
             }
 
             response = requests.post(token_url, data=data, headers=headers)
+            print("Google Response:", response.status_code, response.json())
             if response.status_code != 200:
                 return Response(
                     {"error": "토큰 가져오기 실패", "details": response.text},
