@@ -307,6 +307,7 @@ class NaverLoginView(APIView):
                 "grant_type": "authorization_code",
                 "client_id": os.getenv("NAVER_CLIENT_ID"),
                 "client_secret": os.getenv("NAVER_CLIENT_SECRET"),
+                "redirect_uri": os.getenv("NAVER_REDIRECT_URI"),
                 "code": code,
                 "state": state,
             }
@@ -384,6 +385,7 @@ class KakaoLoginView(APIView):
             data = {
                 "grant_type": "authorization_code",
                 "client_id": os.getenv("KAKAO_CLIENT_ID"),
+                "client_secret": os.getenv("KAKAO_CLIENT_SECRET"),
                 "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"),
                 "code": code,
             }
