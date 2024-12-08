@@ -167,9 +167,9 @@ class GoogleLoginView(APIView):
         token_url = "https://oauth2.googleapis.com/token"
         data = {
             "code": code,
-            "client_id": os.getenv("CLIENT_ID"),
-            "client_secret": os.getenv("CLIENT_SECRET"),
-            "redirect_uri": os.getenv("REDIRECT_URI"),
+            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
             "grant_type": "authorization_code",
             "state": state,
         }
