@@ -109,7 +109,7 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
             # 응답 데이터 생성
             data = {
                 "calendar": serializer.data,
-                "creator_id": calendar.creator.id,  # 생성자의 ID 추가
+                "creator_id": calendar.creator_id,  # 생성자의 ID 추가
             }
             return Response(data, status=status.HTTP_200_OK)
         except Calendar.DoesNotExist:
@@ -162,7 +162,10 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
 
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
+
     # permission_classes = [AllowAny]  # 인증 없이 접근 가능
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)
 
     @extend_schema(
         summary="구독한 캘린더 목록 조회",
@@ -366,6 +369,7 @@ class AdminCalendarsAPIView(ListAPIView):
                 "description": calendar.description,
                 "is_public": calendar.is_public,
                 "color": calendar.color,
+                "invitation_code": calendar.invitation_code,
                 "created_at": calendar.created_at,
                 "creator_id": calendar.creator_id,  # 생성자의 ID
                 "admins": list(

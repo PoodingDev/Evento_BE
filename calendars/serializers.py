@@ -62,10 +62,9 @@ class CalendarDetailSerializer(serializers.ModelSerializer):
             "color",
             "created_at",
             "creator",
+            "invitation_code",
             "admins",
         ]
-
-        # 초대 코드는 포함하지 않음
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
