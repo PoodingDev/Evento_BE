@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Event
-from .serializers import EventSerializer
+from .serializers import PrivateEventSerializer, PublicEventSerializer
 
 
 class PublicEventListAPIView(ListAPIView):
@@ -38,14 +38,14 @@ class PublicEventListAPIView(ListAPIView):
     - GET: 공개된 모든 이벤트를 조회합니다.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = PublicEventSerializer
     permission_classes = [IsAuthenticated]  # JWT 인증 필수
 
     @extend_schema(
         # tags=["공개 이벤트"],
         summary="공개 이벤트 목록 조회",
         description="공개된 모든 이벤트를 반환합니다.",
-        responses={200: EventSerializer(many=True)},
+        responses={200: PublicEventSerializer(many=True)},
     )
     def get_queryset(self):
         # 공개된 이벤트만 반환
@@ -58,19 +58,18 @@ class PublicEventListCreateAPIView(CreateAPIView):
     - POST: 새로운 공개 이벤트를 생성합니다.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = PublicEventSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
         # tags=["공개 이벤트"],
         summary="공개 이벤트 생성",
         description="새로운 공개 이벤트를 생성합니다.",
-        request=EventSerializer,
-        responses={201: EventSerializer},
+        request=PublicEventSerializer,
+        responses={201: PublicEventSerializer},
     )
     def perform_create(self, serializer):
-        # 생성 시 요청 유저를 admin_id로 설정
-        serializer.save(admin_id=self.request.user, is_public=True)
+        serializer.save()
 
 
 class PrivateEventListAPIView(ListAPIView):
@@ -79,14 +78,14 @@ class PrivateEventListAPIView(ListAPIView):
     - GET: 요청한 사용자가 관리하는 비공개 이벤트만 조회합니다.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = PrivateEventSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
         # tags=["비공개 이벤트"],
         summary="비공개 이벤트 목록 조회",
         description="사용자가 관리하는 비공개 이벤트를 반환합니다.",
-        responses={200: EventSerializer(many=True)},
+        responses={200: PrivateEventSerializer(many=True)},
     )
     def get_queryset(self):
         # 요청 사용자가 관리하는 비공개 이벤트만 반환
@@ -99,19 +98,17 @@ class PrivateEventListCreateAPIView(CreateAPIView):
     - POST: 새로운 비공개 이벤트를 생성합니다.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = PrivateEventSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        # tags=["비공개 이벤트"],
         summary="비공개 이벤트 생성",
         description="새로운 비공개 이벤트를 생성합니다.",
-        request=EventSerializer,
-        responses={201: EventSerializer},
+        request=PrivateEventSerializer,
+        responses={201: PrivateEventSerializer},
     )
     def perform_create(self, serializer):
-        # 생성 시 요청 유저를 admin_id로 설정
-        serializer.save(admin_id=self.request.user, is_public=False)
+        serializer.save()
 
 
 class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
@@ -122,14 +119,14 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     - DELETE: 특정 이벤트를 삭제합니다.
     """
 
-    serializer_class = EventSerializer
+    serializer_class = PublicEventSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
         # tags=["이벤트"],
         summary="이벤트 상세 조회",
         description="특정 이벤트의 상세 정보를 반환합니다.",
-        responses={200: EventSerializer},
+        responses={200: PublicEventSerializer},
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
@@ -138,8 +135,8 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
         # tags=["이벤트"],
         summary="이벤트 수정",
         description="특정 이벤트의 정보를 수정합니다.",
-        request=EventSerializer,
-        responses={200: EventSerializer},
+        request=PublicEventSerializer,
+        responses={200: PublicEventSerializer},
     )
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
@@ -286,7 +283,7 @@ class EventUploadView(APIView):
                     updated_events.append(event)
                 else:
                     # 생성 처리
-                    serializer = EventSerializer(data=row.to_dict())
+                    serializer = PublicEventSerializer(data=row.to_dict())
                     if serializer.is_valid():
                         serializer.save(admin_id=request.user)
                         created_events.append(serializer.data)
@@ -305,7 +302,7 @@ class EventUploadView(APIView):
             {
                 "created_events": created_events,
                 "updated_events": [
-                    EventSerializer(event).data for event in updated_events
+                    PublicEventSerializer(event).data for event in updated_events
                 ],
             },
             status=status.HTTP_200_OK,
