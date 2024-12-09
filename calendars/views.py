@@ -90,8 +90,34 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     @extend_schema(
         summary="캘린더 상세 조회",
         description="특정 캘린더의 세부 정보를 반환합니다.",
-        responses={200: CalendarDetailSerializer(many=True)},
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "calendar": {
+                        "$ref": "#/components/schemas/CalendarDetail"
+                    },
+                    "creator_id": {"type": "integer"}
+                }
+            }
+        },
     )
+    def get(self, request, *args, **kwargs):
+        try:
+            calendar = self.get_object()  # URL에서 calendar_id로 캘린더 객체를 가져옴
+            serializer = self.get_serializer(calendar)
+
+            # 응답 데이터 생성
+            data = {
+                "calendar": serializer.data,
+                "creator_id": calendar.creator.id  # 생성자의 ID 추가
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except Calendar.DoesNotExist:
+            return Response(
+                {"error": "캘린더를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND
+            )
     def get_serializer_context(self):
         """
         Serializer에 request context 전달
@@ -99,10 +125,10 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
-
-    def get(self, request, *args, **kwargs):
-        self.serializer_context = {"request": self.request}
-        return super().get(request, *args, **kwargs)
+    #
+    # def get(self, request, *args, **kwargs):
+    #     self.serializer_context = {"request": self.request}
+    #     return super().get(request, *args, **kwargs)
 
     @extend_schema(
         summary="캘린더 수정",
