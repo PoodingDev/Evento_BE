@@ -75,9 +75,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     구독 데이터를 직렬화하는 Serializer
     """
 
-    calendar_id = serializers.IntegerField(
-        source="calendar.calendar_id", read_only=True
-    )
+    calendar_id = serializers.IntegerField(write_only=True)  # 구독 생성 시 사용
     name = serializers.CharField(source="calendar.name", read_only=True)
     description = serializers.CharField(source="calendar.description", read_only=True)
     is_public = serializers.BooleanField(source="calendar.is_public", read_only=True)
@@ -98,7 +96,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
-            "calendar_id",
+            "calendar_id",  # calendar_id 필드 추가
             "name",
             "description",
             "is_public",
@@ -112,12 +110,22 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         read_only_fields = ["user", "created_at"]
 
     def create(self, validated_data):
-        """
-        구독 생성 시 현재 요청 사용자를 user로 설정
-        """
-        user = self.context["request"].user  # 요청 사용자 가져오기
+        calendar_id = validated_data.pop("calendar_id")
+        user = self.context["request"].user
+
+        # Calendar 객체 가져오기
+        try:
+            calendar = Calendar.objects.get(calendar_id=calendar_id)
+        except Calendar.DoesNotExist:
+            raise serializers.ValidationError("캘린더를 찾을 수 없습니다.")
+
+        # validated_data에서 user 제거
         validated_data.pop("user", None)
-        subscription = Subscription.objects.create(user=user, **validated_data)
+
+        # 구독 생성
+        subscription = Subscription.objects.create(
+            user=user, calendar=calendar, **validated_data
+        )
         return subscription
 
     def update(self, instance, validated_data):

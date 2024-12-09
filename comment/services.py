@@ -40,16 +40,35 @@ class CalendarNotFoundException(CommentException):
 
 class CommentService:
     @staticmethod
+    def extract_uuid(event_id_str):
+        """문자열에서 UUID 추출"""
+        try:
+            # UUID 패턴 찾기 (마지막 UUID 형식 문자열 추출)
+            if isinstance(event_id_str, uuid.UUID):
+                return event_id_str
+
+            # 문자열에서 UUID 부분만 추출
+            if "(ID:" in event_id_str:
+                uuid_str = event_id_str.split("(ID:")[-1].strip(' )"')
+            else:
+                uuid_str = event_id_str.strip()
+
+            return uuid.UUID(uuid_str)
+        except (ValueError, AttributeError):
+            raise ValidationError("유효한 UUID 형식이 아닙니다.")
+
+    @staticmethod
     def check_comment_permission(user, event_id):
         """
         댓글 작성 권한 확인
         - 캘린더의 creator나 admin만 댓글 작성 가능
         """
         try:
-            event = Event.objects.get(event_id=event_id)
-            calendar = event.calendar_id  # 이벤트가 속한 캘린더
+            # UUID 추출 및 변환
+            event_uuid = CommentService.extract_uuid(event_id)
+            event = Event.objects.get(event_id=event_uuid)
+            calendar = event.calendar_id
 
-            # 캘린더의 creator이거나 admin인 경우에만 허용
             if user == calendar.creator or user in calendar.admins.all():
                 return True
             raise CommentPermissionDeniedException()
@@ -61,14 +80,13 @@ class CommentService:
 
     @staticmethod
     def get_event(event_id):
+        """이벤트 조회"""
         try:
-            # UUID 문자열을 그대로 사용
-            event_uuid = uuid.UUID(event_id)
-            return Event.objects.get(event_id=event_id)
-        except ObjectDoesNotExist:
+            # UUID 추출 및 변환
+            event_uuid = CommentService.extract_uuid(event_id)
+            return Event.objects.get(event_id=event_uuid)
+        except Event.DoesNotExist:
             raise EventNotFoundException()
-        except ValueError:
-            raise ValidationError("유효한 UUID 형식이 아닙니다.")
 
     @staticmethod
     def get_comment(comment_id):
@@ -80,19 +98,26 @@ class CommentService:
     @classmethod
     def get_comments(cls, request, event_id):
         try:
+            # 권한 확인
             cls.check_comment_permission(request.user, event_id)
-            comments = Comment.objects.filter(event_id=event_id)
+
+            # UUID 추출 및 변환
+            event_uuid = cls.extract_uuid(event_id)
+
+            # 해당 이벤트의 댓글 조회
+            comments = Comment.objects.filter(event__event_id=event_uuid)
             return comments, None
+
         except CommentPermissionDeniedException as e:
             return None, {"error": e.error, "message": e.message}
 
     @classmethod
     def create_comment(cls, request, event_id):
         """댓글 생성"""
-        # 권한 확인 - event_id 전달
+        # 권한 확인
         cls.check_comment_permission(request.user, event_id)
 
-        # 이벤트 확인
+        # 이벤트 조회
         event = cls.get_event(event_id)
 
         serializer = CommentCreateSerializer(data=request.data)

@@ -18,13 +18,20 @@ class CommentListCreateView(APIView):
     @extend_schema(tags=["댓글"], responses={200: CommentSerializer(many=True)})
     def get(self, request, event_id):
         try:
-            event = CommentService.get_event(event_id)
-            comments, error = CommentService.get_comments(request, event)
+            comments, error = CommentService.get_comments(request, event_id)
             if error:
-                return Response(error, status=403)
-            return Response({"comments": CommentSerializer(comments, many=True).data})
-        except EventNotFoundException as e:
-            return Response({"error": e.error, "message": e.message}, status=404)
+                return Response(error, status=status.HTTP_403_FORBIDDEN)
+            serializer = CommentSerializer(comments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except (
+            EventNotFoundException,
+            CalendarNotFoundException,
+            CommentPermissionDeniedException,
+        ) as e:
+            return Response(
+                {"error": e.error, "message": e.message},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
     @extend_schema(
         tags=["댓글"],
