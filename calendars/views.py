@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
@@ -243,92 +244,52 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
 class CalendarSearchAPIView(ListAPIView):
     """
     닉네임으로 시작하는 사용자가 만든 공개 캘린더 검색 API
-
     """
 
     serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [SearchFilter]
-    search_fields = ["name", "creator__nickname"]
 
     @extend_schema(
         summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
         description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
         parameters=[
-            {
-                "name": "nickname",
-                "in": "query",
-                "description": "검색할 닉네임의 시작 문자열",
-                "required": True,
-                "type": "string",
-                "example": "John",
-            }
+            OpenApiParameter(
+                name="search",
+                description="검색할 닉네임",
+                required=True,
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+            ),
         ],
-        responses={
-            200: {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "calendar": {"$ref": "#/components/schemas/CalendarDetail"},
-                        "is_subscribed": {"type": "boolean"},
-                    },
-                },
-            }
-        },
+        responses={200: CalendarDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
-        # queryset = Calendar.objects.filter(is_public=True)
-        nickname = request.query_params.get("nickname", "")
-        if nickname:
-            return Response({"error": "닉네임을 입력해주세요."}, status=400)
-            # queryset = queryset.filter(creator__nickname__icontains=nickname)
+        nickname = request.query_params.get("search", "").strip()
 
-        # 필터링: 닉네임으로 시작하는 유저가 만든 공개 캘린더
+        if not nickname:
+            return Response({"error": "닉네임을 입력해주세요."}, status=400)
+
         calendars = Calendar.objects.filter(
-            Q(is_public=True) & Q(creator__nickname__istartswith=nickname)
+            is_public=True, creator__nickname__istartswith=nickname
         ).distinct()
 
-        # 응답 데이터 생성
-        data = [
-            {
-                "calendar": {
-                    "id": calendar.id,
-                    "name": calendar.name,
-                    "description": calendar.description,
-                    "creator_nickname": calendar.creator.nickname,
-                    "is_public": calendar.is_public,
-                    "color": calendar.color,
-                },
-                "is_subscribed": Subscription.objects.filter(
-                    user=request.user, calendar=calendar
-                ).exists(),
+        data = []
+        for calendar in calendars:
+            calendar_data = {
+                "calendar_id": calendar.calendar_id,
+                "name": calendar.name,
+                "description": calendar.description,
+                "creator_nickname": calendar.creator.nickname,
+                "is_public": calendar.is_public,
+                "color": calendar.color,
+                "created_at": calendar.created_at,
             }
-            for calendar in calendars
-        ]
+            is_subscribed = Subscription.objects.filter(
+                user=request.user, calendar=calendar
+            ).exists()
+            data.append({"calendar": calendar_data, "is_subscribed": is_subscribed})
 
-        data = [
-            {
-                "calendar": CalendarDetailSerializer(calendar).data,
-                "is_subscribed": Subscription.objects.filter(
-                    user=request.user, calendar=calendar
-                ).exists(),
-            }
-            for calendar in queryset
-        ]
         return Response(data, status=200)
-
-    def get_queryset(self):
-        search_query = self.request.query_params.get("search", "")
-        if not search_query:
-            return Calendar.objects.none()
-        return (
-            Calendar.objects.filter(
-                is_public=True, creator__nickname__istartswith=search_query
-            )
-            .select_related("creator")
-            .distinct()
-        )
 
 
 class AdminCalendarsAPIView(ListAPIView):
