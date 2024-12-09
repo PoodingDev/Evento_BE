@@ -220,7 +220,7 @@ class AdminCalendarSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField()
     created_at = serializers.DateTimeField()
 
-    creator_id = serializers.IntegerField(source="creator.id", read_only=True)
+    # creator_id = serializers.IntegerField(source="creator.id", read_only=True)
     admin_members = serializers.SerializerMethodField()
 
     class Meta:
@@ -230,6 +230,7 @@ class AdminCalendarSerializer(serializers.ModelSerializer):
             "creator_nickname",
             # "is_visible",
             # "is_on_calendar",
+            "is_public",
             "is_active",
             "created_at",
             "admin_members",
@@ -254,3 +255,13 @@ class CalendarSearchSerializer(serializers.ModelSerializer):
                 calendar=obj
             ).exists()
         return False
+
+class SubscriptionUpdateSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField(
+        required=True,
+        help_text="구독 활성화 상태"
+    )
+
+class AdminCalendarVisibilitySerializer(serializers.Serializer):
+    calendar_id = serializers.UUIDField(required=True)
+    is_active = serializers.BooleanField(required=True)

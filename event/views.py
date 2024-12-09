@@ -10,6 +10,7 @@ import pandas as pd
 
 from django.db.models import Q
 from rest_framework.views import APIView
+from rest_framework import serializers
 from rest_framework.generics import (
     ListAPIView,
     CreateAPIView,
@@ -20,6 +21,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+from rest_framework.exceptions import NotAuthenticated
 
 from .models import Event, Calendar
 from .serializers import EventSerializer, PublicEventSerializer, PrivateEventSerializer
@@ -59,6 +61,18 @@ class PublicEventViewSet(ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(admin_id=self.request.user)
+
+
+class PrivateEventView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def handle_exception(self, exc):
+        if isinstance(exc, NotAuthenticated):
+            return Response(
+                {"error": "인증이 필요한 서비스입니다."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        return super().handle_exception(exc)
 
 class PrivateEventViewSet(ListCreateAPIView):
     """
@@ -111,7 +125,10 @@ class PrivateEventViewSet(ListCreateAPIView):
         """
         비공개 이벤트 목록 조회
         """
-        return Event.objects.filter(is_public=False, admin_id=self.request.user)
+        queryset = Event.objects.filter(admin_id=self.request.user, is_public=False)
+        print(queryset.query) # SQL 쿼리 출력
+        return queryset
+        # return Event.objects.filter(is_public=False, admin_id=self.request.user)
 
     # def get_queryset(self):
     #     return Event.objects.filter(
@@ -122,9 +139,17 @@ class PrivateEventViewSet(ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(admin_id=self.request.user)
 
+
+
 class EventDetailView(RetrieveUpdateDestroyAPIView):
+    serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
     lookup_field = 'event_id'
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            Q(is_public=True) | Q(admin_id=self.request.user)
+        )
 
     def get_serializer_class(self):
         event = self.get_object()
@@ -351,7 +376,12 @@ class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
             status=status.HTTP_204_NO_CONTENT,
         )
 
+
+class EventUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
 class EventUploadView(APIView):
+    serializer_class = EventUploadSerializer
     """
     CSV 또는 Excel 파일로 이벤트 일괄 업로드/업데이트
     - POST: 파일을 업로드하여 이벤트를 생성하거나 업데이트합니다.

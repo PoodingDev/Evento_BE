@@ -30,7 +30,7 @@ urlpatterns = [
 
     path('public/', PublicEventViewSet.as_view(), name='public-events'),
     path('private/', PrivateEventViewSet.as_view(), name='private-events'),
-    path('<uuid:event_id>/', EventDetailView.as_view(), name='event-detail'),
+    path('events/<uuid:event_id>/', EventDetailView.as_view(), name='event-detail'),
     # CSV 업로드 및 업데이트
-    path("upload/", EventUploadView.as_view(), name="event-upload"),
+    path("events/upload/", EventUploadView.as_view(), name="event-upload"),
 ]

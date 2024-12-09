@@ -136,3 +136,9 @@ class PrivateEventSerializer(serializers.ModelSerializer):
         validated_data["admin_id"] = self.context["request"].user
         validated_data["is_public"] = False  # 강제로 False 설정
         return super().create(validated_data)
+
+class EventUploadSerializer(serializers.Serializer):
+    file = serializers.FileField(
+        help_text="이벤트 데이터 파일 (.csv, .xlsx)",
+        required=True
+    )

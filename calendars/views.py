@@ -1,5 +1,12 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    extend_schema,
+    OpenApiParameter,
+    OpenApiExample,
+    OpenApiResponse,
+    OpenApiTypes
+)
 from rest_framework.filters import SearchFilter
+from rest_framework import serializers
 from rest_framework.generics import (
     DestroyAPIView,
     ListAPIView,
@@ -271,24 +278,29 @@ class SubscriptionListAPIView(ListAPIView):
             return Response([], status=status.HTTP_200_OK)
         return super().get(request, *args, **kwargs)
 
+# Serializer 클래스를 추가해야 합니다
+class UpdateStatusSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField()
 
 class UpdateSubscriptionActiveStatusAPIView(APIView):
     """
     구독한 캘린더의 활성화/비활성화 상태 업데이트 API
     """
+    serializer_class = UpdateStatusSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="캘린더 활성화/비활성화 상태 업데이트",
         description="체크박스 상태(`is_active`)에 따라 사용자가 구독한 캘린더의 활성화 상태를 업데이트합니다.",
-        request={
-            "type": "object",
-            "properties": {
-                "calendar_id": {"type": "integer", "description": "캘린더 ID", "example": 1},
-                "is_active": {"type": "boolean", "description": "캘린더 활성화 여부", "example": True}
-            },
-            "required": ["calendar_id", "is_active"]
-        },
+        # request={
+        #     "type": "object",
+        #     "properties": {
+        #         "calendar_id": {"type": "integer", "description": "캘린더 ID", "example": 1},
+        #         "is_active": {"type": "boolean", "description": "캘린더 활성화 여부", "example": True}
+        #     },
+        #     "required": ["calendar_id", "is_active"]
+        # },
+        request=UpdateStatusSerializer,  # 시리얼라이저 사용
         responses={
             200: {
                 "description": "상태 업데이트 성공",
@@ -320,8 +332,12 @@ class UpdateSubscriptionActiveStatusAPIView(APIView):
         """
         사용자가 구독한 캘린더의 활성화 상태 업데이트
         """
+        serializer = UpdateStatusSerializer(data=request.data)
         calendar_id = request.data.get("calendar_id")
         is_active = request.data.get("is_active")
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         if calendar_id is None or is_active is None:
             return Response(
@@ -330,7 +346,17 @@ class UpdateSubscriptionActiveStatusAPIView(APIView):
             )
 
         try:
-            subscription = Subscription.objects.get(calendar_id=calendar_id, user=request.user)
+            subscription = Subscription.objects.get(
+                calendar_id=calendar_id,
+                user=request.user
+            )
+            subscription.is_active = serializer.validated_data['is_active']
+            subscription.save()
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
         except Subscription.DoesNotExist:
             return Response(
                 {"error": "구독 정보를 찾을 수 없습니다."},
@@ -395,33 +421,74 @@ class CalendarSearchAPIView(ListAPIView):
     search_fields = ["name", "creator__nickname"]
 
     @extend_schema(
-        summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
-        description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
+        summary="캘린더 검색",
         parameters=[
-            {
-                "name": "nickname",
-                "in": "query",
-                "description": "검색할 닉네임의 시작 문자열",
-                "required": True,
-                "type": "string",
-                "example": "John"
-            }
+            OpenApiParameter(
+                name="nickname",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="검색할 닉네임의 시작 문자열",
+                required=True,
+                examples=[
+                    OpenApiExample(
+                        'Example',
+                        value='John',
+                        description='닉네임 검색 예시'
+                    )
+                ]
+            )
         ],
         responses={
-            200: {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "calendar": {
-                            "$ref": "#/components/schemas/CalendarDetail"
-                        },
-                        "is_subscribed": {"type": "boolean"}
-                    }
-                }
-            }
+            200: OpenApiResponse(
+                response=CalendarSearchSerializer(many=True),
+                description="검색 성공"
+            ),
+            400: OpenApiResponse(description="잘못된 요청"),
+            401: OpenApiResponse(description="인증 필요")
         }
     )
+    def get(self, request, *args, **kwargs):
+        nickname = request.query_params.get('nickname')
+        if not nickname:
+            return Response(
+                {"error": "닉네임 파라미터가 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        nickname = self.request.query_params.get('nickname', '')
+        return Calendar.objects.filter(
+            creator__nickname__istartswith=nickname
+        ).select_related('creator').distinct()
+    # @extend_schema(
+    #     summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
+    #     description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
+    #     parameters=[
+    #         {
+    #             "name": "nickname",
+    #             "in": "query",
+    #             "description": "검색할 닉네임의 시작 문자열",
+    #             "required": True,
+    #             "type": "string",
+    #             "example": "John"
+    #         }
+    #     ],
+    #     responses={
+    #         200: {
+    #             "type": "array",
+    #             "items": {
+    #                 "type": "object",
+    #                 "properties": {
+    #                     "calendar": {
+    #                         "$ref": "#/components/schemas/CalendarDetail"
+    #                     },
+    #                     "is_subscribed": {"type": "boolean"}
+    #                 }
+    #             }
+    #         }
+    #     }
+    # )
     def get(self, request, *args, **kwargs):
         # queryset = Calendar.objects.filter(is_public=True)
         nickname = request.query_params.get("nickname", "")
@@ -540,6 +607,7 @@ class AdminCalendarsAPIView(ListAPIView):
         ).distinct()
 
 class UpdateAdminCalendarVisibilityAPIView(APIView):
+    serializer_class = UpdateStatusSerializer
     """
     관리 캘린더 체크박스 표시 여부 업데이트
     """
