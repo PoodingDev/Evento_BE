@@ -35,7 +35,11 @@ urlpatterns = [
         name="subscription-delete",
     ),
     # 캘린더 검색
-    path("search/", CalendarSearchAPIView.as_view(), name="calendar-search"),
+    path(
+        "search/<str:nickname>/",
+        CalendarSearchAPIView.as_view(),
+        name="calendar-search",
+    ),
     # 관리 권한이 있는 캘린더 조회
     path("admin/", AdminCalendarsAPIView.as_view(), name="admin-calendars"),
     # 캘린더 멤버 조회

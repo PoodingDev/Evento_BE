@@ -252,23 +252,16 @@ class CalendarSearchAPIView(ListAPIView):
     @extend_schema(
         summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
         description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
-        parameters=[
-            OpenApiParameter(
-                name="search",
-                description="검색할 닉네임",
-                required=True,
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-            ),
-        ],
         responses={200: CalendarDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
-        nickname = request.query_params.get("search", "").strip()
+        # URL에서 nickname을 가져옴
+        nickname = kwargs.get("nickname", "").strip()
 
         if not nickname:
             return Response({"error": "닉네임을 입력해주세요."}, status=400)
 
+        # SQL LIKE 문을 사용하여 필터링
         calendars = Calendar.objects.filter(
             is_public=True, creator__nickname__istartswith=nickname
         ).distinct()
