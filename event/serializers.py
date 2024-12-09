@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import serializers
 
 from favorite_event.models import FavoriteEvent
@@ -39,12 +40,21 @@ class EventSerializer(serializers.ModelSerializer):
             return False
 
         try:
-            # FavoriteEvent 존재 여부 확인
-            favorite_exists = FavoriteEvent.objects.filter(
-                user=request.user, event_id=obj.event_id
-            ).exists()
-            return favorite_exists
-        except Exception:
+            # FavoriteEvent 존재 여부 확인 (user_id 사용)
+            favorite = FavoriteEvent.objects.filter(
+                Q(user_id=request.user.user_id) & Q(event_id=obj.event_id)
+            ).first()
+
+            # 디버깅용 로그
+            print(f"User ID: {request.user.user_id}")
+            print(f"Event ID: {obj.event_id}")
+            print(f"Favorite exists: {favorite is not None}")
+
+            return favorite is not None
+
+        except Exception as e:
+            # 디버깅용 로그
+            print(f"Error in get_is_liked: {str(e)}")
             return False
 
     def create(self, validated_data):
