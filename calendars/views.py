@@ -305,8 +305,46 @@ class AdminCalendarsAPIView(ListAPIView):
     @extend_schema(
         summary="관리 권한이 있는 캘린더 조회",
         description="현재 사용자가 생성했거나 관리 권한을 부여받은 모든 캘린더를 반환합니다.",
-        responses={200: CalendarDetailSerializer(many=True)},
+        responses={
+            200: {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "calendar": {
+                            "$ref": "#/components/schemas/CalendarDetail"
+                        },
+                        "creator_id": {"type": "integer"},
+                        "admin_members": {"type": "array", "items": {"type": "integer"}}
+                    }
+                }
+            }
+        }
     )
+    def get(self, request, *args, **kwargs):
+        # 관리 권한이 있는 캘린더
+        calendars = Calendar.objects.filter(
+            Q(creator=request.user) | Q(admins=request.user)
+        ).distinct()
+
+        # 응답 데이터 생성
+        data = [
+            {
+                "calendar": {
+                    "id": calendar.id,
+                    "name": calendar.name,
+                    "description": calendar.description,
+                    "is_public": calendar.is_public,
+                    "color": calendar.color,
+                    "created_at": calendar.created_at,
+                },
+                "creator_id": calendar.creator.id,  # 생성자의 ID
+                "admin_members": list(calendar.admins.values_list("id", flat=True))  # 관리자 멤버 리스트
+            }
+            for calendar in calendars
+        ]
+
+        return Response(data, status=200)
 
     # def get_queryset(self):
     #     if self.request.user.is_authenticated:
