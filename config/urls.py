@@ -19,7 +19,7 @@ urlpatterns = [
     # 이벤트 관련
     path("api/events/", include("event.urls")),
     # 댓글 관련 (특정 이벤트에 종속)
-    path("api/events/<int:event_id>/", include("comment.urls")),
+    path("api/events/<uuid:event_id>/", include("comment.urls")),
     # 유저별 즐겨찾기 관련
     path("api/users/<str:user_id>/", include("favorite_event.urls")),
 ]

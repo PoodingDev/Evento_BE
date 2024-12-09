@@ -52,6 +52,8 @@ class CalendarDetailSerializer(serializers.ModelSerializer):
     캘린더 조회용 Serializer (초대 코드 제외)
     """
 
+    creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
+
     class Meta:
         model = Calendar
         fields = [
@@ -62,6 +64,7 @@ class CalendarDetailSerializer(serializers.ModelSerializer):
             "color",
             "created_at",
             "creator",
+            "creator_nickname",
             "invitation_code",
             "admins",
         ]
