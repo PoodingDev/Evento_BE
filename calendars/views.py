@@ -260,19 +260,20 @@ class CalendarSearchAPIView(ListAPIView):
         responses={200: CalendarDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
-        # URL에서 nickname을 가져옴
         nickname = kwargs.get("nickname", "").strip()
 
         if not nickname:
             return Response({"error": "닉네임을 입력해주세요."}, status=400)
 
-        # SQL LIKE 문을 사용하여 필터링
         calendars = Calendar.objects.filter(
             is_public=True, creator__nickname__istartswith=nickname
         ).distinct()
 
         data = []
         for calendar in calendars:
+            is_subscribed = Subscription.objects.filter(
+                user=request.user, calendar=calendar
+            ).exists()
             calendar_data = {
                 "calendar_id": calendar.calendar_id,
                 "name": calendar.name,
@@ -281,11 +282,9 @@ class CalendarSearchAPIView(ListAPIView):
                 "is_public": calendar.is_public,
                 "color": calendar.color,
                 "created_at": calendar.created_at,
+                "is_subscribed": is_subscribed,
             }
-            is_subscribed = Subscription.objects.filter(
-                user=request.user, calendar=calendar
-            ).exists()
-            data.append({"calendar": calendar_data, "is_subscribed": is_subscribed})
+            data.append(calendar_data)
 
         return Response(data, status=200)
 
