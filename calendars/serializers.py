@@ -3,14 +3,71 @@ from rest_framework import serializers
 from .models import Calendar, Subscription
 
 
-class CalendarSerializer(serializers.ModelSerializer):
+class CalendarCreateSerializer(serializers.ModelSerializer):
     """
-    캘린더 데이터를 직렬화하는 Serializer
+    캘린더 생성용 Serializer (초대 코드 포함)
     """
 
     class Meta:
         model = Calendar
-        fields = "__all__"
+        fields = [
+            # "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "invitation_code",  # 초대 코드 포함
+            "creator",
+            "admins",
+        ]
+        # exclude = ['calendar_id']  # 생성 시 캘린더 ID 제외
+
+    def to_representation(self, instance):
+        """
+        사용자 권한에 따라 invitation_code를 동적으로 제외
+        """
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        # 관리자 권한이 없는 경우 초대 코드 제거
+        if request and not instance.has_admin_permission(request.user):
+            representation.pop("invitation_code", None)
+
+        return representation
+
+
+class CalendarSearchResultSerializer(serializers.ModelSerializer):
+    creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Calendar
+        fields = ["name", "creator_nickname", "is_subscribed"]
+
+    def get_is_subscribed(self, obj):
+        user = self.context["request"].user
+        return Subscription.objects.filter(user=user, calendar=obj).exists()
+
+
+class CalendarDetailSerializer(serializers.ModelSerializer):
+    """
+    캘린더 조회용 Serializer (초대 코드 제외)
+    """
+
+    class Meta:
+        model = Calendar
+        fields = [
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "creator",
+            "admins",
+        ]
+        # 초대 코드는 포함하지 않음
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -19,7 +76,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     """
 
     # 읽기 전용 캘린더 정보
-    calendar = CalendarSerializer(read_only=True)
+    calendar = CalendarDetailSerializer(read_only=True)
 
     # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
     calendar_id = serializers.PrimaryKeyRelatedField(
@@ -41,14 +98,27 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         subscription = Subscription.objects.create(user=user, **validated_data)
         return subscription
 
+    def update(self, instance, validated_data):
+        """
+        구독 데이터 업데이트 (is_active, is_on_calendar 상태 변경)
+        """
+        instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.is_on_calendar = validated_data.get(
+            "is_on_calendar", instance.is_on_calendar
+        )
+        instance.save()
+        return instance
+
 
 class AdminInvitationSerializer(serializers.Serializer):
     """
     관리자 초대 코드 처리 Serializer
     """
 
-    invitation_code = serializers.CharField(max_length=255, write_only=True)
-    calendar = CalendarSerializer(read_only=True)
+    invitation_code = serializers.CharField(
+        max_length=255, help_text="초대 코드", write_only=True
+    )
+    calendar = CalendarCreateSerializer(read_only=True)
 
     def validate_invitation_code(self, value):
         """
@@ -58,6 +128,8 @@ class AdminInvitationSerializer(serializers.Serializer):
             calendar = Calendar.objects.get(invitation_code=value)
         except Calendar.DoesNotExist:
             raise serializers.ValidationError("유효하지 않은 초대 코드입니다.")
+        if self.context["request"].user in calendar.admins.all():
+            raise serializers.ValidationError("이미 캘린더 관리자로 추가되었습니다.")
         self.calendar = calendar
         return value
 
@@ -68,6 +140,5 @@ class AdminInvitationSerializer(serializers.Serializer):
         user = self.context["request"].user  # 요청 사용자
         if not hasattr(self, "calendar"):
             raise serializers.ValidationError("초대 코드가 유효하지 않습니다.")
-        self.calendar.creator = user  # 관리자로 추가
-        self.calendar.save()
+        self.calendar.admins.add(user)  # 관리자로 추가
         return self.calendar

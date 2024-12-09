@@ -157,10 +157,6 @@ class LogoutView(APIView):
         )
 
 
-def generate_random_nickname():
-    return "".join(random.choices(string.ascii_letters + string.digits, k=8))
-
-
 class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
@@ -252,6 +248,16 @@ class NaverLoginView(APIView):
     def post(self, request):
         code = request.data.get("code")
         state = request.data.get("state")
+        if not code:
+            return Response(
+                {"error": "인가 코드가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not state:
+            return Response(
+                {"error": "state가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token_url = "https://nid.naver.com/oauth2.0/token"
         data = {
@@ -263,35 +269,158 @@ class NaverLoginView(APIView):
             "state": state,
         }
 
-        # 네이버 토큰 받기
-        token_response = requests.post(token_url, data=data)
-        access_token = token_response.json().get("access_token")
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        }
 
-        # 사용자 정보 가져오기
+        token_response = requests.post(token_url, data=data, headers=headers)
+        if token_response.status_code != 200:
+            return Response(
+                {"error": "토큰 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        access_token = token_response.json().get("access_token")
+        if not access_token:
+            return Response(
+                {"error": "액세스 토큰을 찾을 수 없습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         user_info_url = "https://openapi.naver.com/v1/nid/me"
         headers = {"Authorization": f"Bearer {access_token}"}
-        user_info = requests.get(user_info_url, headers=headers).json()
+        user_info_response = requests.get(user_info_url, headers=headers)
+
+        if user_info_response.status_code != 200:
+            return Response(
+                {"error": "유저정보 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user_info = user_info_response.json().get("response", {})
+        email = user_info.get("email")
+        if not email:
+            return Response(
+                {"error": "이메일 정보를 찾을 수 없습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                user.delete()
+                user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("name", ""),
+                    birth=timezone.now().date(),
+                    nickname=generate_random_nickname(),
+                )
+                user.set_unusable_password()
+                user.save()
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                email=email,
+                username=user_info.get("name", ""),
+                birth=timezone.now().date(),
+                nickname=generate_random_nickname(),
+            )
+            user.set_unusable_password()
+            user.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class KakaoLoginView(APIView):
     @extend_schema(tags=["사용자"])
     def post(self, request):
         code = request.data.get("code")
+        if not code:
+            return Response(
+                {"error": "인가 코드가 제공되지 않았습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         token_url = "https://kauth.kakao.com/oauth/token"
         data = {
             "grant_type": "authorization_code",
             "client_id": os.getenv("KAKAO_CLIENT_ID"),
-            "secret": os.getenv("KAKAO_CLIENT_SECRET"),
+            "client_secret": os.getenv("KAKAO_CLIENT_SECRET"),
             "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"),
             "code": code,
         }
 
-        # 카카오 토큰 받기
-        token_response = requests.post(token_url, data=data)
-        access_token = token_response.json().get("access_token")
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        }
 
-        # 사용자 정보 가져오기
+        token_response = requests.post(token_url, data=data, headers=headers)
+        if token_response.status_code != 200:
+            return Response(
+                {"error": "토큰 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        access_token = token_response.json().get("access_token")
+        if not access_token:
+            return Response(
+                {"error": "액세스 토큰을 찾을 수 없습니다."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         user_info_url = "https://kapi.kakao.com/v2/user/me"
         headers = {"Authorization": f"Bearer {access_token}"}
-        user_info = requests.get(user_info_url, headers=headers).json()
+        user_info_response = requests.get(user_info_url, headers=headers)
+
+        if user_info_response.status_code != 200:
+            return Response(
+                {"error": "유저정보 가져오기 실패"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        user_info = user_info_response.json()
+        email = user_info.get("kakao_account", {}).get("email")
+        if not email:
+            return Response(
+                {"error": "이메일 정보를 찾을 수 없습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                user.delete()
+                user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("properties", {}).get("nickname", ""),
+                    birth=timezone.now().date(),
+                    nickname=generate_random_nickname(),
+                )
+                user.set_unusable_password()
+                user.save()
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                email=email,
+                username=user_info.get("properties", {}).get("nickname", ""),
+                birth=timezone.now().date(),
+                nickname=generate_random_nickname(),
+            )
+            user.set_unusable_password()
+            user.save()
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
+            status=status.HTTP_200_OK,
+        )

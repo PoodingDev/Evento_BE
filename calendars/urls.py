@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    ActiveSubscriptionsAPIView,
     AdminCalendarsAPIView,
     AdminInvitationView,
     CalendarListCreateAPIView,
@@ -9,35 +10,59 @@ from .views import (
     CalendarSearchAPIView,
     SubscriptionDeleteAPIView,
     SubscriptionListCreateAPIView,
+    UpdateActiveStatusAPIView,
+    UpdateSubscriptionVisibilityAPIView,
 )
 
 urlpatterns = [
+    # 캘린더 목록 조회 및 생성
     path("", CalendarListCreateAPIView.as_view(), name="calendar-list-create"),
+    # 캘린더 상세 조회, 수정, 삭제
     path(
         "<int:pk>/",
         CalendarRetrieveUpdateDestroyAPIView.as_view(),
-        name="calendar-detail",
+        name="calendar-retrieve",
     ),
+    # 캘린더 구독 및 취소
     path(
-        "subscriptions/",
+        "<int:calendar_id>/subscriptions/",
         SubscriptionListCreateAPIView.as_view(),
         name="subscription-list-create",
     ),
     path(
-        "subscriptions/<int:pk>/",
+        "<int:calendar_id>/unsubscriptions/",
         SubscriptionDeleteAPIView.as_view(),
         name="subscription-delete",
     ),
-    path("calendars/search/", CalendarSearchAPIView.as_view(), name="calendar-search"),
-    path("calendars/admin/", AdminCalendarsAPIView.as_view(), name="admin-calendars"),
+    # 캘린더 검색
+    path("search/", CalendarSearchAPIView.as_view(), name="calendar-search"),
+    # 관리 권한이 있는 캘린더 조회
+    path("admin/", AdminCalendarsAPIView.as_view(), name="admin-calendars"),
+    # 캘린더 멤버 조회
     path(
-        "calendars/<int:pk>/members/",
-        CalendarMembersAPIView.as_view(),
-        name="calendar-members",
+        "<int:pk>/members/", CalendarMembersAPIView.as_view(), name="calendar-members"
+    ),
+    # 관리자 초대
+    path("admins/invite/", AdminInvitationView.as_view(), name="admin-invitation"),
+    path(
+        "subscriptions/active/",
+        ActiveSubscriptionsAPIView.as_view(),
+        name="active-subscriptions",
     ),
     path(
-        "calendars/admins/invite/",
-        AdminInvitationView.as_view(),
-        name="admin-invitation",
-    ),  # 관리자 초대 URL 추가
+        "subscriptions/update-status/",
+        UpdateActiveStatusAPIView.as_view(),
+        name="update-active-status",
+    ),
+    path(
+        "subscriptions/delete/",
+        SubscriptionDeleteAPIView.as_view(),
+        name="subscription-delete",
+    ),
+    # 구독 표시 여부 업데이트
+    path(
+        "subscriptions/update-visibility/",
+        UpdateSubscriptionVisibilityAPIView.as_view(),
+        name="update-subscription-visibility",
+    ),
 ]
