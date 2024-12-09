@@ -25,7 +25,7 @@ urlpatterns = [
     ),
     # 캘린더 구독 및 취소
     path(
-        "<int:calendar_id>/subscriptions/",
+        "subscriptions/",
         SubscriptionListCreateAPIView.as_view(),
         name="subscription-list-create",
     ),
