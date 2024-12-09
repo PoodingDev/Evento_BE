@@ -11,7 +11,7 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Calendar
         fields = [
-            "calendar_id",
+            # "calendar_id",
             "name",
             "description",
             "is_public",
@@ -21,6 +21,7 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
             "creator",
             "admins",
         ]
+        # exclude = ['calendar_id']  # 생성 시 캘린더 ID 제외
 
     def to_representation(self, instance):
         """
@@ -34,6 +35,19 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
             representation.pop("invitation_code", None)
 
         return representation
+
+class CalendarSearchResultSerializer(serializers.ModelSerializer):
+    creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Calendar
+        fields = ["name", "creator_nickname", "is_subscribed"]
+
+    def get_is_subscribed(self, obj):
+        user = self.context["request"].user
+        return Subscription.objects.filter(user=user, calendar=obj).exists()
+
 
 class CalendarDetailSerializer(serializers.ModelSerializer):
     """
