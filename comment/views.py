@@ -1,11 +1,14 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from comment.serializers import CommentCreateSerializer, CommentSerializer
 from comment.services import (
+    CalendarNotFoundException,
     CommentNotFoundException,
+    CommentPermissionDeniedException,
     CommentService,
     EventNotFoundException,
 )
@@ -25,15 +28,29 @@ class CommentListCreateView(APIView):
 
     @extend_schema(
         tags=["댓글"],
+        parameters=[
+            OpenApiParameter(
+                name="event_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                required=True,
+            )
+        ],
         request=CommentCreateSerializer,
         responses={201: CommentSerializer},
     )
     def post(self, request, event_id):
         try:
-            event = CommentService.get_event(event_id)
-            return CommentService.create_comment(request, event)
-        except EventNotFoundException as e:
-            return Response({"error": e.error, "message": e.message}, status=404)
+            return CommentService.create_comment(request, event_id)
+        except (
+            EventNotFoundException,
+            CalendarNotFoundException,
+            CommentPermissionDeniedException,
+        ) as e:
+            return Response(
+                {"error": e.error, "message": e.message},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class CommentDetailView(APIView):

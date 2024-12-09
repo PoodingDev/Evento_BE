@@ -29,8 +29,9 @@ urlpatterns = [
         SubscriptionListCreateAPIView.as_view(),
         name="subscription-list-create",
     ),
+    # 구독 취소
     path(
-        "<int:calendar_id>/unsubscriptions/",
+        "subscriptions/<int:calendar_id>/",
         SubscriptionDeleteAPIView.as_view(),
         name="subscription-delete",
     ),
@@ -49,19 +50,9 @@ urlpatterns = [
     # 관리자 초대
     path("admins/invite/", AdminInvitationView.as_view(), name="admin-invitation"),
     path(
-        "subscriptions/active/",
-        ActiveSubscriptionsAPIView.as_view(),
-        name="active-subscriptions",
-    ),
-    path(
         "subscriptions/update-status/",
         UpdateActiveStatusAPIView.as_view(),
         name="update-active-status",
-    ),
-    path(
-        "subscriptions/delete/",
-        SubscriptionDeleteAPIView.as_view(),
-        name="subscription-delete",
     ),
     # 구독 표시 여부 업데이트
     path(

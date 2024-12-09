@@ -211,38 +211,39 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
             serializer.save(user=self.request.user)
 
 
-class SubscriptionDeleteAPIView(DestroyAPIView):
+class SubscriptionDeleteAPIView(APIView):
     """
-    구독 취소
+    특정 캘린더 구독 취소
     """
 
-    serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
 
     @extend_schema(
-        summary="구독 삭제",
-        description="특정 캘린더 구독을 삭제합니다.",
-        responses={204: None},
+        summary="특정 캘린더 구독 취소",
+        description="특정 캘린더의 구독을 취소합니다.",
+        parameters=[
+            OpenApiParameter(
+                name="calendar_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH,
+                description="캘린더 ID",
+                required=True,
+            )
+        ],
+        responses={204: None, 404: {"description": "구독 정보를 찾을 수 없습니다."}},
     )
     def delete(self, request, calendar_id):
         try:
-            calendar = Calendar.objects.get(id=calendar_id)
-            subscription = Subscription.objects.filter(
-                user=request.user, calendar=calendar
+            subscription = Subscription.objects.get(
+                user=request.user, calendar_id=calendar_id
             )
-            if subscription.exists():
-                subscription.delete()
-                return Response({"message": "캘린더 구독 취소 성공"}, status=204)
-            return Response({"error": "구독되지 않은 캘린더입니다."}, status=400)
-        except Calendar.DoesNotExist:
-            return Response({"error": "캘린더를 찾을 수 없습니다."}, status=404)
-
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            # 현재 사용자가 구독한 캘린더만 삭제 가능
-            return Subscription.objects.filter(user=self.request.user)
-        return Subscription.objects.none()
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Subscription.DoesNotExist:
+            return Response(
+                {"error": "구독 정보를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class CalendarSearchAPIView(ListAPIView):
