@@ -23,24 +23,29 @@ class EventSerializer(serializers.ModelSerializer):
             "end_time",
             "admin_id",
             "is_public",
-            "is_liked",
             "location",
+            "is_liked",
         ]
         read_only_fields = ["event_id", "admin_id"]
 
     def get_is_liked(self, obj):
         """
-        현재 사용자가 이벤트를 좋아요 했는지 여부를 반환
-        True: 좋아요 한 상태
-        False: 좋아요 하지 않은 상태
+        현재 사용자가 이벤트를 좋아요 했는지 여부를 검증하고 반환
+        True: FavoriteEvent에 해당 이벤트가 존재하는 경우
+        False: FavoriteEvent에 해당 이벤트가 존재하지 않는 경우
         """
         request = self.context.get("request")
-        if request and request.user.is_authenticated:
-            is_liked = FavoriteEvent.objects.filter(
+        if not request or not request.user.is_authenticated:
+            return False
+
+        try:
+            # FavoriteEvent 존재 여부 확인
+            favorite_exists = FavoriteEvent.objects.filter(
                 user=request.user, event_id=obj.event_id
             ).exists()
-            return is_liked  # True 또는 False 반환
-        return False
+            return favorite_exists
+        except Exception:
+            return False
 
     def create(self, validated_data):
         validated_data["admin_id"] = self.context["request"].user
