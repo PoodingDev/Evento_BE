@@ -17,6 +17,8 @@ from .serializers import (
     CalendarCreateSerializer,
     CalendarDetailSerializer,
     CalendarSearchResultSerializer,
+    AdminCalendarSerializer,
+    CalendarSearchSerializer,
     SubscriptionSerializer, AdminInvitationSerializer
 )
 
@@ -206,7 +208,8 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
 
 class CalendarSearchAPIView(ListAPIView):
     """
-    캘린더 및 유저 검색
+    닉네임으로 시작하는 사용자가 만든 공개 캘린더 검색 API
+
     """
 
     serializer_class = CalendarDetailSerializer
@@ -215,15 +218,63 @@ class CalendarSearchAPIView(ListAPIView):
     search_fields = ["name", "creator__nickname"]
 
     @extend_schema(
-        summary="캘린더 및 유저 검색",
-        description="닉네임 또는 캘린더 이름으로 공개된 캘린더를 검색합니다.",
-        responses={200: CalendarDetailSerializer(many=True)},
+        summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
+        description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
+        parameters=[
+            {
+                "name": "nickname",
+                "in": "query",
+                "description": "검색할 닉네임의 시작 문자열",
+                "required": True,
+                "type": "string",
+                "example": "John"
+            }
+        ],
+        responses={
+            200: {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "calendar": {
+                            "$ref": "#/components/schemas/CalendarDetail"
+                        },
+                        "is_subscribed": {"type": "boolean"}
+                    }
+                }
+            }
+        }
     )
     def get(self, request, *args, **kwargs):
-        queryset = Calendar.objects.filter(is_public=True)
+        # queryset = Calendar.objects.filter(is_public=True)
         nickname = request.query_params.get("nickname", "")
         if nickname:
-            queryset = queryset.filter(creator__nickname__icontains=nickname)
+            return Response({"error": "닉네임을 입력해주세요."}, status=400)
+            # queryset = queryset.filter(creator__nickname__icontains=nickname)
+
+        # 필터링: 닉네임으로 시작하는 유저가 만든 공개 캘린더
+        calendars = Calendar.objects.filter(
+            Q(is_public=True) & Q(creator__nickname__istartswith=nickname)
+        ).distinct()
+
+        # 응답 데이터 생성
+        data = [
+            {
+                "calendar": {
+                    "id": calendar.id,
+                    "name": calendar.name,
+                    "description": calendar.description,
+                    "creator_nickname": calendar.creator.nickname,
+                    "is_public": calendar.is_public,
+                    "color": calendar.color,
+                    "created_at": calendar.created_at,
+                },
+                "is_subscribed": Subscription.objects.filter(
+                    user=request.user, calendar=calendar
+                ).exists(),
+            }
+            for calendar in calendars
+        ]
 
         data = [
             {
@@ -257,14 +308,19 @@ class AdminCalendarsAPIView(ListAPIView):
         responses={200: CalendarDetailSerializer(many=True)},
     )
 
+    # def get_queryset(self):
+    #     if self.request.user.is_authenticated:
+    #         return Calendar.objects.filter(
+    #             # 생성자이거나 관리자로 초대된 캘린더
+    #             models.Q(creator=self.request.user) |
+    #             models.Q(admins=self.request.user)
+    #         ).distinct().select_related('creator')
+    #     return Calendar.objects.none()
+
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return Calendar.objects.filter(
-                # 생성자이거나 관리자로 초대된 캘린더
-                models.Q(creator=self.request.user) |
-                models.Q(admins=self.request.user)
-            ).distinct().select_related('creator')
-        return Calendar.objects.none()
+        return Calendar.objects.filter(
+            models.Q(creator=self.request.user) | models.Q(admins=self.request.user)
+        ).distinct()
 
 class CalendarMembersAPIView(ListAPIView):
     """
