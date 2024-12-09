@@ -8,19 +8,148 @@ with open("event_schedule.csv", "w", newline="") as file:
 
 import pandas as pd
 
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.generics import (
     ListAPIView,
     CreateAPIView,
     RetrieveUpdateDestroyAPIView,
+    ListCreateAPIView,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from .models import Event
-from .serializers import EventSerializer
+from .models import Event, Calendar
+from .serializers import EventSerializer, PublicEventSerializer, PrivateEventSerializer
+
+class PublicEventViewSet(ListCreateAPIView):
+    serializer_class = PublicEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="공개 이벤트 목록 조회",
+        responses={
+            200: OpenApiResponse(
+                response=PublicEventSerializer(many=True),
+                description="공개 이벤트 목록 조회 성공"
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="공개 이벤트 생성",
+        request=PublicEventSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=PublicEventSerializer,
+                description="공개 이벤트 생성 성공"
+            ),
+            400: OpenApiResponse(description="잘못된 요청")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Event.objects.filter(is_public=True)
+
+    def perform_create(self, serializer):
+        serializer.save(admin_id=self.request.user)
+
+class PrivateEventViewSet(ListCreateAPIView):
+    serializer_class = PrivateEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="비공개 이벤트 목록 조회",
+        responses={
+            200: OpenApiResponse(
+                response=PrivateEventSerializer(many=True),
+                description="비공개 이벤트 목록 조회 성공"
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="비공개 이벤트 생성",
+        request=PrivateEventSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=PrivateEventSerializer,
+                description="비공개 이벤트 생성 성공"
+            ),
+            400: OpenApiResponse(description="잘못된 요청")
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            is_public=False,
+            admin_id=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(admin_id=self.request.user)
+
+class EventDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'event_id'
+
+    def get_serializer_class(self):
+        event = self.get_object()
+        return PublicEventSerializer if event.is_public else PrivateEventSerializer
+
+    @extend_schema(
+        summary="이벤트 상세 조회",
+        responses={
+            200: OpenApiResponse(
+                response=EventSerializer,
+                description="이벤트 조회 성공"
+            ),
+            404: OpenApiResponse(description="이벤트를 찾을 수 없음")
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="이벤트 수정",
+        request=EventSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=EventSerializer,
+                description="이벤트 수정 성공"
+            ),
+            400: OpenApiResponse(description="잘못된 요청"),
+            404: OpenApiResponse(description="이벤트를 찾을 수 없음")
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="이벤트 삭제",
+        responses={
+            204: OpenApiResponse(description="이벤트 삭제 성공"),
+            404: OpenApiResponse(description="이벤트를 찾을 수 없음")
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            Q(is_public=True) |
+            Q(admin_id=self.request.user)
+        )
 
 
 class PublicEventListAPIView(ListAPIView):
@@ -37,9 +166,25 @@ class PublicEventListAPIView(ListAPIView):
         description="공개된 모든 이벤트를 반환합니다.",
         responses={200: EventSerializer(many=True)},
     )
+    def perform_create(self, serializer):
+        # is_public을 무조건 True로 설정
+        serializer.save(admin_id=self.request.user, is_public=True)
+
     def get_queryset(self):
         # 공개된 이벤트만 반환
         return Event.objects.filter(is_public=True)
+
+    def post(self, request):
+        data = request.data.copy()
+
+        # is_public 값을 명시적으로 처리
+        # 요청 데이터의 is_public 값을 강제로 True로 설정
+        data["is_public"] = True
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class PublicEventListCreateAPIView(CreateAPIView):
@@ -50,6 +195,25 @@ class PublicEventListCreateAPIView(CreateAPIView):
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
 
+    # GET 요청: 전체 이벤트 조회
+    def get(self, request):
+        events = Event.objects.all()
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # POST 요청: 새로운 이벤트 생성
+    def post(self, request):
+        # 요청 데이터에 is_public이 없으면 기본값 False로 설정
+        data = request.data.copy()
+        if 'is_public' not in data:
+            data['is_public'] = True
+
+        serializer = EventSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @extend_schema(
         # tags=["공개 이벤트"],
         summary="공개 이벤트 생성",
@@ -59,7 +223,8 @@ class PublicEventListCreateAPIView(CreateAPIView):
     )
     def perform_create(self, serializer):
         # 생성 시 요청 유저를 admin_id로 설정
-        serializer.save(admin_id=self.request.user, is_public=True)
+        # serializer.save(admin_id=self.request.user, is_public=True)
+        serializer.save()
 
 
 class PrivateEventListAPIView(ListAPIView):
@@ -86,8 +251,15 @@ class PrivateEventListCreateAPIView(CreateAPIView):
     비공개 이벤트 생성
     - POST: 새로운 비공개 이벤트를 생성합니다.
     """
+
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
+
+    # GET 요청: 전체 이벤트 조회
+    def get(self, request):
+        events = Event.objects.all()
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         # tags=["비공개 이벤트"],
@@ -97,8 +269,20 @@ class PrivateEventListCreateAPIView(CreateAPIView):
         responses={201: EventSerializer},
     )
     def perform_create(self, serializer):
-        # 생성 시 요청 유저를 admin_id로 설정
-        serializer.save(admin_id=self.request.user, is_public=False)
+        # is_public을 무조건 False로 설정
+        # serializer.save(admin_id=self.request.user, is_public=False)
+        serializer.save()
+
+    def post(self, request, *args, **kwargs):
+        data = request.data.copy()
+
+        # 요청 데이터의 is_public 값을 강제로 False로 설정
+        data["is_public"] = False
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
@@ -252,3 +436,37 @@ class EventUploadView(APIView):
             "created_events": created_events,
             "updated_events": [EventSerializer(event).data for event in updated_events],
         }, status=status.HTTP_200_OK)
+
+
+class UserRelatedEventListAPIView(ListAPIView):
+    """
+    관리자로 등록된 캘린더의 이벤트와
+    구독자로 등록된 공개 캘린더의 이벤트를 반환
+    """
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="사용자 관련 이벤트 조회",
+        description="관리자로 속한 캘린더의 이벤트와 구독 중인 공개 캘린더의 이벤트를 반환합니다.",
+        responses={200: EventSerializer(many=True)},
+    )
+    def get_queryset(self):
+        user = self.request.user
+
+        # 내가 관리자로 속하고 is_active=True인 캘린더의 모든 이벤트
+        admin_calendar_events = Event.objects.filter(
+            calendar__admins=user,
+            calendar__subscriptions__is_active=True,
+        )
+
+        # 내가 구독자로 속하고 is_active=True인 캘린더의 공개 이벤트
+        subscriber_calendar_events = Event.objects.filter(
+            calendar__subscriptions__user=user,
+            calendar__subscriptions__is_active=True,
+            is_public=True,
+        )
+
+        # 두 조건의 합집합 반환
+        return admin_calendar_events | subscriber_calendar_events
+

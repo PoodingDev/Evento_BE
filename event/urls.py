@@ -6,6 +6,10 @@ from .views import (
     PrivateEventListCreateAPIView,
     EventRetrieveUpdateDestroyAPIView,
     EventUploadView,
+    UserRelatedEventListAPIView,
+    PublicEventViewSet,
+    PrivateEventViewSet,
+    EventDetailView
 )
 
 urlpatterns = [
@@ -22,6 +26,11 @@ urlpatterns = [
     # 이벤트 상세 조회, 수정, 삭제
     path("<int:pk>/", EventRetrieveUpdateDestroyAPIView.as_view(), name="event-detail"),
 
+    path("events/user-related/", UserRelatedEventListAPIView.as_view(), name="user-related-events"),
+
+    path('public/', PublicEventViewSet.as_view(), name='public-events'),
+    path('private/', PrivateEventViewSet.as_view(), name='private-events'),
+    path('<uuid:event_id>/', EventDetailView.as_view(), name='event-detail'),
     # CSV 업로드 및 업데이트
     path("upload/", EventUploadView.as_view(), name="event-upload"),
 ]

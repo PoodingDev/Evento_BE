@@ -32,7 +32,7 @@ class Event(models.Model):
         related_name="events"  # 역참조 이름
     )
     is_public = models.BooleanField(
-        default=False, verbose_name="공개 여부"
+        default=True, verbose_name="공개 여부"
     )  # 이벤트 공개 여부
     location = models.CharField(
         max_length=255, null=True, blank=True, verbose_name="위치"
@@ -45,6 +45,9 @@ class Event(models.Model):
         ordering = ["start_time"]  # 시작 시간을 기준으로 정렬
         verbose_name = "이벤트"
         verbose_name_plural = "이벤트"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
 
     def __str__(self):
         """
@@ -73,3 +76,33 @@ class Event(models.Model):
         비공개 이벤트 조회
         """
         return Event.objects.filter(is_public=False)
+
+    @classmethod
+    def get_visible_events(cls, user):
+        """
+        사용자가 볼 수 있는 이벤트 목록을 반환
+        - 공개 이벤트: 모든 사용자가 볼 수 있음
+        - 비공개 이벤트: 캘린더 구독자만 볼 수 있음
+        """
+        return cls.objects.filter(
+            Q(is_public=True) |  # 공개 이벤트
+            Q(  # 비공개 이벤트 중 구독 중인 캘린더의 이벤트
+                is_public=False,
+                calendar__subscriptions__user=user,
+                calendar__subscriptions__is_active=True
+            )
+        ).distinct()
+
+    @classmethod
+    def get_public_events(cls):
+        """공개 이벤트만 반환"""
+        return cls.objects.filter(is_public=True)
+
+    @classmethod
+    def get_private_events(cls, user):
+        """사용자가 구독 중인 비공개 이벤트만 반환"""
+        return cls.objects.filter(
+            is_public=False,
+            calendar__subscriptions__user=user,
+            calendar__subscriptions__is_active=True
+        ).distinct()
