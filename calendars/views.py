@@ -369,7 +369,6 @@ class AdminCalendarsAPIView(ListAPIView):
                 "is_public": calendar.is_public,
                 "color": calendar.color,
                 "invitation_code": calendar.invitation_code,
-                "created_at": calendar.created_at,
                 "creator_id": calendar.creator_id,  # 생성자의 ID
                 "admins": list(
                     calendar.admins.values_list("nickname", flat=True)
