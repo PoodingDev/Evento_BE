@@ -104,8 +104,8 @@ class CommentService:
             # UUID 추출 및 변환
             event_uuid = cls.extract_uuid(event_id)
 
-            # 해당 이벤트의 댓글 조회
-            comments = Comment.objects.filter(event__event_id=event_uuid)
+            # 해당 이벤트의 댓글 조회 (event_id로 필터링)
+            comments = Comment.objects.filter(event_id=event_uuid)
             return comments, None
 
         except CommentPermissionDeniedException as e:
@@ -122,7 +122,7 @@ class CommentService:
 
         serializer = CommentCreateSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(event=event, admin_id=request.user)
+            serializer.save(event_id=event, admin_id=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
