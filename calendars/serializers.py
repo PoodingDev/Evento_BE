@@ -16,9 +16,6 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
             "description",
             "is_public",
             "color",
-            "created_at",
-            "invitation_code",  # 초대 코드 포함
-            "creator",
             "admins",
         ]
         # exclude = ['calendar_id']  # 생성 시 캘린더 ID 제외

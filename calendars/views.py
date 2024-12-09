@@ -1,4 +1,5 @@
 from django.db import models, transaction
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.filters import SearchFilter
