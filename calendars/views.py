@@ -22,7 +22,7 @@ from .serializers import (
     SubscriptionSerializer,
     SubscriptionCreateSerializer,
     SubscriptionDetailSerializer,
-    AdminInvitationSerializer
+    AdminInvitationSerializer,
 )
 
 class CalendarListCreateAPIView(ListCreateAPIView):
@@ -443,6 +443,8 @@ class AdminCalendarsAPIView(ListAPIView):
                     "name": calendar.name,
                     "description": calendar.description,
                     "is_public": calendar.is_public,
+                    "is_visible": calendar.is_visible,
+                    "is_on_calendar": calendar.is_on_calendar,
                     "color": calendar.color,
                     "created_at": calendar.created_at,
                 },
@@ -467,6 +469,78 @@ class AdminCalendarsAPIView(ListAPIView):
         return Calendar.objects.filter(
             models.Q(creator=self.request.user) | models.Q(admins=self.request.user)
         ).distinct()
+
+class UpdateAdminCalendarVisibilityAPIView(APIView):
+    """
+    관리 캘린더 체크박스 표시 여부 업데이트
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="관리 캘린더 표시 여부 업데이트",
+        description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
+        request={
+            "type": "object",
+            "properties": {
+                "calendar_id": {"type": "integer", "description": "캘린더 ID"},
+                "is_on_calendar": {"type": "boolean", "description": "캘린더 표시 여부"}
+            },
+            "required": ["calendar_id", "is_on_calendar"]
+        },
+        responses={
+            200: {
+                "description": "업데이트 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "캘린더 표시 상태가 업데이트되었습니다."}
+                    }
+                }
+            },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "요청이 잘못되었습니다."}
+                    }
+                }
+            },
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        calendar_id = request.data.get("calendar_id")
+        is_on_calendar = request.data.get("is_on_calendar")
+
+        if not calendar_id or is_on_calendar is None:
+            return Response({"error": "캘린더 ID와 표시 여부를 제공해야 합니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            admin_entry = CalendarAdmin.objects.get(user=request.user, calendar_id=calendar_id)
+            admin_entry.is_on_calendar = is_on_calendar
+            admin_entry.save()
+            return Response({"message": "캘린더 표시 상태가 업데이트되었습니다."}, status=status.HTTP_200_OK)
+        except CalendarAdmin.DoesNotExist:
+            return Response({"error": "관리 캘린더 정보를 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+class AdminCalendarListView(ListAPIView):
+    """
+    관리자가 볼 수 있는 캘린더 목록 API
+    """
+    serializer_class = AdminCalendarSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Calendar.objects.filter(models.Q(creator=user) | models.Q(admins=user)).distinct()
+
+    @extend_schema(
+        summary="관리자가 볼 수 있는 캘린더 목록",
+        description="관리자가 생성하거나 관리 권한이 있는 캘린더 목록을 반환합니다.",
+        responses={200: AdminCalendarSerializer(many=True)},
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 class CalendarMembersAPIView(ListAPIView):
     """

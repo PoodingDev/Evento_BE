@@ -1,4 +1,6 @@
 from django.urls import path
+
+from .serializers import AdminCalendarSerializer
 from .views import (
     AdminInvitationView,
     AdminCalendarsAPIView,
@@ -11,6 +13,7 @@ from .views import (
     ActiveSubscriptionsAPIView,
     UpdateActiveStatusAPIView,
     UpdateSubscriptionVisibilityAPIView,
+    UpdateAdminCalendarVisibilityAPIView,
 )
 
 urlpatterns = [
@@ -33,6 +36,8 @@ urlpatterns = [
     # 캘린더 멤버 조회
     path("<int:pk>/members/", CalendarMembersAPIView.as_view(), name="calendar-members"),
 
+    path("admin/calendars/", AdminCalendarSerializer, name="admin-calendar-serializer"),
+    path("admin/calendars/update-status", UpdateAdminCalendarVisibilityAPIView.as_view(), name="admin-calendar-update-visibility"),
     # 관리자 초대
     path("admins/invite/", AdminInvitationView.as_view(), name="admin-invitation"),
 

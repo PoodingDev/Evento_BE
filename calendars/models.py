@@ -80,7 +80,7 @@ class CalendarAdmin(models.Model):
     캘린더 관리자 정보 저장
     """
     user = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="calendar_admin_roles"
     )
@@ -89,6 +89,7 @@ class CalendarAdmin(models.Model):
         on_delete=models.CASCADE,
         related_name="calendar_admins"
     )
+    is_on_calendar = models.BooleanField(default=True)
     added_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

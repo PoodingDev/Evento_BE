@@ -185,12 +185,26 @@ class AdminInvitationSerializer(serializers.Serializer):
         return self.calendar
 
 class AdminCalendarSerializer(serializers.ModelSerializer):
+    calendar_name = serializers.CharField(source="calendar.name")
+    creator_nickname = serializers.CharField(source="calendar.creator.nickname")
+    is_visible = serializers.BooleanField()
+    is_on_calendar = serializers.BooleanField()
+    is_active = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+
     creator_id = serializers.IntegerField(source="creator.id", read_only=True)
     admin_members = serializers.SerializerMethodField()
 
     class Meta:
         model = Calendar
-        fields = ["name", "creator_id", "admin_members"]
+        fields = [
+            "calendar_name",
+            "creator_nickname",
+            "is_visible",
+            "is_on_calendar",
+            "is_active",
+            "created_at",
+        ]
 
     def get_admin_members(self, obj):
         return list(obj.admins.values_list("nickname", flat=True))
