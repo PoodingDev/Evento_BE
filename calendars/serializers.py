@@ -64,6 +64,7 @@ class CalendarDetailSerializer(serializers.ModelSerializer):
             "creator",
             "admins",
         ]
+
         # 초대 코드는 포함하지 않음
 
 

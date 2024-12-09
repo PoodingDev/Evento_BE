@@ -1,5 +1,5 @@
+import random
 import string
-from random import random
 
 from django.conf import settings
 from django.db import models
@@ -32,16 +32,20 @@ class Calendar(models.Model):
         db_table = "calendars"  # 테이블명 명시적 지정
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None  # 객체가 새로 생성되는 경우 확인
-        if not self.invitation_code:
-            self.invitation_code = self.generate_invitation_code()
-        super().save(*args, **kwargs)
+        try:
+            is_new = self.pk is None
+            if not self.invitation_code:
+                self.invitation_code = self.generate_invitation_code()
+            super().save(*args, **kwargs)
 
-        if is_new:
-            # 새로운 캘린더 생성 시 creator를 member로 추가 및 is_active 초기화
-            Subscription.objects.create(
-                user=self.creator, calendar=self, is_active=True
-            )
+            if is_new:
+                Subscription.objects.create(
+                    user=self.creator, calendar=self, is_active=True
+                )
+                CalendarAdmin.objects.get_or_create(user=self.creator, calendar=self)
+        except Exception as e:
+            print(f"Error during save: {e}")
+            raise
 
         # 생성자를 자동으로 관리자로 추가
         if (
@@ -57,7 +61,7 @@ class Calendar(models.Model):
 
     @staticmethod
     def generate_invitation_code():
-        return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        return "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
     def has_admin_permission(self, user):
         """사용자의 관리자 권한 확인"""
