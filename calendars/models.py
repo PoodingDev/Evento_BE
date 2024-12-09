@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
+import secrets
 
 from user.models import User
 
@@ -36,15 +37,25 @@ class Calendar(models.Model):
 
         if is_new:
             # 새로운 캘린더 생성 시 creator를 member로 추가 및 is_active 초기화
-            Subscription.objects.create(
+            with transaction.atomic():
+                Subscription.objects.create(
+                    user=self.creator,
+                    calendar=self,
+                    is_active=True
+                )
+                if not self.admins.filter(id=self.creator.id).exists():
+                    self.admins.add(self.creator)
+
+            # 생성자를 자동으로 관리자로 추가
+            CalendarAdmin.objects.create(
                 user=self.creator,
                 calendar=self,
-                is_active=True
+                is_on_calendar=True  # 기본값: 캘린더에 표시
             )
 
         # 생성자를 자동으로 관리자로 추가
-        if self.pk and not self.admins.filter(id=self.creator.id).exists():
-            self.admins.add(self.creator)
+        # if self.pk and not self.admins.filter(id=self.creator.id).exists():
+        #     self.admins.add(self.creator)
 
     def __str__(self):
         return f"{self.name} (ID: {self.calendar_id})"
@@ -59,12 +70,18 @@ class Calendar(models.Model):
 
 
 class Subscription(models.Model):
-    user = models.ForeignKey("user.User", on_delete=models.CASCADE, related_name="subscriptions")
-    calendar = models.ForeignKey("calendars.Calendar", on_delete=models.CASCADE, related_name="subscriptions")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="subscriptions"
+    )
+    calendar = models.ForeignKey(
+        "Calendar",
+        on_delete=models.CASCADE,
+        related_name="subscriptions"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
-    is_visible = models.BooleanField(default=True)  # 사이드바 표시 여부
-    is_on_calendar = models.BooleanField(default=True)  # 캘린더에 표시 여부
-    is_active = models.BooleanField(default=True)  # 체크박스 상태
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("user", "calendar")
@@ -72,7 +89,6 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.user.nickname} subscribed to {self.calendar.name}"
-
 
 
 class CalendarAdmin(models.Model):
@@ -89,8 +105,15 @@ class CalendarAdmin(models.Model):
         on_delete=models.CASCADE,
         related_name="calendar_admins"
     )
+    is_on_calendar = models.BooleanField(
+        default=True,
+        help_text="관리자 캘린더 화면에서 이벤트 표시 여부"
+    )
     is_on_calendar = models.BooleanField(default=True)
     added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "calendar")
 
     def __str__(self):
         return f"{self.user} is admin of {self.calendar}"

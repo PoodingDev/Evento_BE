@@ -10,9 +10,11 @@ from .views import (
     CalendarSearchAPIView,
     SubscriptionDeleteAPIView,
     SubscriptionListCreateAPIView,
-    ActiveSubscriptionsAPIView,
-    UpdateActiveStatusAPIView,
-    UpdateSubscriptionVisibilityAPIView,
+    # ActiveSubscriptionsAPIView,
+    # UpdateActiveStatusAPIView,
+    # UpdateSubscriptionVisibilityAPIView,
+    SubscriptionListAPIView,
+    UpdateSubscriptionActiveStatusAPIView,
     UpdateAdminCalendarVisibilityAPIView,
 )
 
@@ -25,6 +27,9 @@ urlpatterns = [
 
     # 캘린더 구독 및 취소
     path("<int:calendar_id>/subscriptions/", SubscriptionListCreateAPIView.as_view(), name="subscription-list-create"),
+    path("<int:calendar_id>/subscriptions/", SubscriptionListAPIView.as_view(), name="subscription-list"),
+    path("<int:calendar_id>/subscriptions/", UpdateSubscriptionActiveStatusAPIView.as_view(), name="subscription-update"),
+
     path("<int:calendar_id>/unsubscriptions/", SubscriptionDeleteAPIView.as_view(), name="subscription-delete"),
 
     # 캘린더 검색
@@ -41,9 +46,9 @@ urlpatterns = [
     # 관리자 초대
     path("admins/invite/", AdminInvitationView.as_view(), name="admin-invitation"),
 
-    path("subscriptions/active/", ActiveSubscriptionsAPIView.as_view(), name="active-subscriptions"),
-    path("subscriptions/update-status/", UpdateActiveStatusAPIView.as_view(), name="update-active-status"),
+    # path("subscriptions/active/", ActiveSubscriptionsAPIView.as_view(), name="active-subscriptions"),
+    # path("subscriptions/update-status/", UpdateActiveStatusAPIView.as_view(), name="update-active-status"),
     path("subscriptions/delete/", SubscriptionDeleteAPIView.as_view(), name="subscription-delete"),
     # 구독 표시 여부 업데이트
-    path("subscriptions/update-visibility/", UpdateSubscriptionVisibilityAPIView.as_view(), name="update-subscription-visibility"),
+    # path("subscriptions/update-visibility/", UpdateSubscriptionVisibilityAPIView.as_view(), name="update-subscription-visibility"),
 ]

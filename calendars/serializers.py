@@ -1,7 +1,6 @@
 from rest_framework import serializers
-
+from django.db import transaction
 from .models import Calendar, Subscription
-
 
 
 class CalendarCreateSerializer(serializers.ModelSerializer):
@@ -21,7 +20,20 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
             "creator",
             "admins",
         ]
-        # exclude = ['calendar_id']  # 생성 시 캘린더 ID 제외
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            # 캘린더 생성
+            calendar = super().create(validated_data)
+
+            # 생성자의 구독 자동 생성
+            Subscription.objects.create(
+                user=self.context['request'].user,
+                calendar=calendar,
+                is_active=True  # 기본적으로 활성화 상태로 생성
+            )
+
+            return calendar
 
     def to_representation(self, instance):
         """
@@ -38,16 +50,23 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
 
 class CalendarSearchResultSerializer(serializers.ModelSerializer):
     creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
-    is_subscribed = serializers.SerializerMethodField()
+    # is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
         model = Calendar
-        fields = ["name", "creator_nickname", "is_subscribed"]
-
-    def get_is_subscribed(self, obj):
-        user = self.context["request"].user
-        return Subscription.objects.filter(user=user, calendar=obj).exists()
-
+        fields = [
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "creator_nickname",
+        ]
+    #
+    # def get_is_subscribed(self, obj):
+    #     user = self.context["request"].user
+    #     return Subscription.objects.filter(user=user, calendar=obj).exists()
 
 class CalendarDetailSerializer(serializers.ModelSerializer):
     """
@@ -67,43 +86,49 @@ class CalendarDetailSerializer(serializers.ModelSerializer):
         ]
         # 초대 코드는 포함하지 않음
 
+    def get_subscription_status(self, obj):
+        return {
+            "is_visible": obj.is_visible,
+            "is_on_calendar": obj.is_on_calendar,
+            "is_active": obj.is_active
+        }
 
-class SubscriptionSerializer(serializers.ModelSerializer):
-    """
-    구독 데이터를 직렬화하는 Serializer
-    """
-
-    # 읽기 전용 캘린더 정보
-    calendar = CalendarDetailSerializer(read_only=True)
-
-    # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
-    calendar_id = serializers.PrimaryKeyRelatedField(
-        queryset=Calendar.objects.all(),
-        source="calendar",
-        write_only=True,
-    )
-
-    class Meta:
-        model = Subscription
-        fields = ["id", "user", "calendar", "calendar_id", "created_at"]
-        read_only_fields = ["user", "created_at"]  # 사용자는 서버에서 설정
-
-    def create(self, validated_data):
-        """
-        구독 생성 시 현재 요청 사용자를 user로 설정
-        """
-        user = self.context["request"].user  # 요청 사용자 가져오기
-        subscription = Subscription.objects.create(user=user, **validated_data)
-        return subscription
-
-    def update(self, instance, validated_data):
-        """
-        구독 데이터 업데이트 (is_active, is_on_calendar 상태 변경)
-        """
-        instance.is_active = validated_data.get("is_active", instance.is_active)
-        instance.is_on_calendar = validated_data.get("is_on_calendar", instance.is_on_calendar)
-        instance.save()
-        return instance
+# class SubscriptionSerializer(serializers.ModelSerializer):
+#     """
+#     구독 데이터를 직렬화하는 Serializer
+#     """
+#
+#     # 읽기 전용 캘린더 정보
+#     calendar = CalendarDetailSerializer(read_only=True)
+#
+#     # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
+#     calendar_id = serializers.PrimaryKeyRelatedField(
+#         queryset=Calendar.objects.all(),
+#         source="calendar",
+#         write_only=True,
+#     )
+#
+#     class Meta:
+#         model = Subscription
+#         fields = ["id", "user", "calendar", "calendar_id", "created_at"]
+#         read_only_fields = ["user", "created_at"]  # 사용자는 서버에서 설정
+#
+#     def create(self, validated_data):
+#         """
+#         구독 생성 시 현재 요청 사용자를 user로 설정
+#         """
+#         user = self.context["request"].user  # 요청 사용자 가져오기
+#         subscription = Subscription.objects.create(user=user, **validated_data)
+#         return subscription
+#
+#     def update(self, instance, validated_data):
+#         """
+#         구독 데이터 업데이트 (is_active, is_on_calendar 상태 변경)
+#         """
+#         instance.is_active = validated_data.get("is_active", instance.is_active)
+#         instance.is_on_calendar = validated_data.get("is_on_calendar", instance.is_on_calendar)
+#         instance.save()
+#         return instance
 
 class SubscriptionCreateSerializer(serializers.ModelSerializer):
     """
@@ -118,7 +143,10 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Subscription
-        fields = ["calendar_id"]
+        fields = ["calendar_id", "is_active"]
+        extra_kwargs = {
+            'is_active': {'default': True}
+        }
 
     def create(self, validated_data):
         """
@@ -134,8 +162,8 @@ class SubscriptionDetailSerializer(serializers.ModelSerializer):
 
     calendar_name = serializers.CharField(source="calendar.name")
     creator_nickname = serializers.CharField(source="calendar.creator.nickname")
-    is_visible = serializers.BooleanField()
-    is_on_calendar = serializers.BooleanField()
+    # is_visible = serializers.BooleanField()
+    # is_on_calendar = serializers.BooleanField()
     is_active = serializers.BooleanField()
     created_at = serializers.DateTimeField()
 
@@ -146,8 +174,6 @@ class SubscriptionDetailSerializer(serializers.ModelSerializer):
         fields = [
             "calendar_name",
             "creator_nickname",
-            "is_visible",
-            "is_on_calendar",
             "is_active",
             "created_at",
         ]
@@ -159,7 +185,7 @@ class AdminInvitationSerializer(serializers.Serializer):
     """
 
     invitation_code = serializers.CharField(max_length=255, help_text="초대 코드", write_only=True)
-    calendar = CalendarCreateSerializer(read_only=True)
+    # calendar = CalendarCreateSerializer(read_only=True)
 
     def validate_invitation_code(self, value):
         """
@@ -187,8 +213,8 @@ class AdminInvitationSerializer(serializers.Serializer):
 class AdminCalendarSerializer(serializers.ModelSerializer):
     calendar_name = serializers.CharField(source="calendar.name")
     creator_nickname = serializers.CharField(source="calendar.creator.nickname")
-    is_visible = serializers.BooleanField()
-    is_on_calendar = serializers.BooleanField()
+    # is_visible = serializers.BooleanField()
+    # is_on_calendar = serializers.BooleanField()
     is_active = serializers.BooleanField()
     created_at = serializers.DateTimeField()
 
@@ -200,10 +226,11 @@ class AdminCalendarSerializer(serializers.ModelSerializer):
         fields = [
             "calendar_name",
             "creator_nickname",
-            "is_visible",
-            "is_on_calendar",
+            # "is_visible",
+            # "is_on_calendar",
             "is_active",
             "created_at",
+            "admin_members",
         ]
 
     def get_admin_members(self, obj):

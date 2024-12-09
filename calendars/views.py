@@ -53,7 +53,9 @@ class CalendarListCreateAPIView(ListCreateAPIView):
         summary="캘린더 생성",
         description="새로운 캘린더를 생성합니다.",
         request=CalendarCreateSerializer,
-        responses={201: CalendarCreateSerializer(many=True)},
+        responses={
+            201: CalendarCreateSerializer(many=True)
+        },
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
@@ -173,48 +175,11 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
         return Subscription.objects.filter(user=self.request.user)
 
     @extend_schema(
-        summary="구독한 캘린더 목록 조회",
-        description="현재 사용자가 구독한 캘린더 목록을 반환합니다.",
-        responses={200: SubscriptionDetailSerializer(many=True)},
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-    @extend_schema(
         summary="캘린더 구독 추가",
         description="특정 캘린더를 구독합니다.",
         request=SubscriptionCreateSerializer,
         responses={
             201: SubscriptionDetailSerializer,
-            # 201: {
-            #     "description": "구독 성공",
-            #     "content": {
-            #         "application/json": {
-            #             "example": {
-            #                 "message": "구독 성공",
-            #                 "calendar": {
-            #                     "name": "Sample Calendar",
-            #                     "description": "Sample Description",
-            #                     "is_public": True,
-            #                     "color": "#FFFFFF",
-            #                     "creator_id": 1
-            #                 },
-            #                 "subscription": {
-            #                     "type": "object",
-            #                     "properties": {
-            #                         "id": {"type": "integer"},
-            #                         "calendar_name": {"type": "string"},
-            #                         "creator_nickname": {"type": "string"},
-            #                         "is_visible": {"type": "boolean"},
-            #                         "is_on_calendar": {"type": "boolean"},
-            #                         "is_active": {"type": "boolean"},
-            #                         "created_at": {"type": "string", "format": "date-time"}
-            #                     }
-            #                 }
-            #             }
-            #         }
-            #     }
-            # },
             400: {
                 "description": "잘못된 요청",
                 "content": {
@@ -241,8 +206,8 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
                 "id": subscription.id,
                 "calendar_name": subscription.calendar.name,
                 "creator_nickname": subscription.calendar.creator.nickname,
-                "is_visible": subscription.is_visible,
-                "is_on_calendar": subscription.is_on_calendar,
+                # "is_visible": subscription.is_visible,
+                # "is_on_calendar": subscription.is_on_calendar,
                 "is_active": subscription.is_active,
                 "created_at": subscription.created_at
             }
@@ -273,6 +238,108 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
         if self.request.user.is_authenticated:
             # 구독 생성 시 요청 사용자를 설정
             serializer.save(user=self.request.user)
+
+
+class SubscriptionListAPIView(ListAPIView):
+    """
+    사용자가 구독한 캘린더 목록 조회 API
+
+    - 체크박스 상태(`is_active`)에 따라 활성화/비활성화 상태를 확인
+    - 구독한 캘린더가 없을 시 빈 목록 반환
+    """
+    serializer_class = SubscriptionDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        사용자가 구독한 캘린더 목록 반환
+        """
+        return Subscription.objects.filter(user=self.request.user).order_by('-created_at')
+
+    @extend_schema(
+        summary="구독한 캘린더 목록 조회",
+        description="현재 사용자가 구독한 캘린더 목록을 반환합니다. 캘린더가 없으면 빈 목록을 반환합니다.",
+        responses={
+            200: SubscriptionDetailSerializer(many=True),
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response([], status=status.HTTP_200_OK)
+        return super().get(request, *args, **kwargs)
+
+
+class UpdateSubscriptionActiveStatusAPIView(APIView):
+    """
+    구독한 캘린더의 활성화/비활성화 상태 업데이트 API
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="캘린더 활성화/비활성화 상태 업데이트",
+        description="체크박스 상태(`is_active`)에 따라 사용자가 구독한 캘린더의 활성화 상태를 업데이트합니다.",
+        request={
+            "type": "object",
+            "properties": {
+                "calendar_id": {"type": "integer", "description": "캘린더 ID", "example": 1},
+                "is_active": {"type": "boolean", "description": "캘린더 활성화 여부", "example": True}
+            },
+            "required": ["calendar_id", "is_active"]
+        },
+        responses={
+            200: {
+                "description": "상태 업데이트 성공",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "캘린더 상태가 업데이트되었습니다."}
+                    }
+                }
+            },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "캘린더 ID와 활성화 상태를 제공해야 합니다."}
+                    }
+                }
+            },
+            404: {
+                "description": "캘린더를 찾을 수 없습니다.",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "구독 정보를 찾을 수 없습니다."}
+                    }
+                }
+            }
+        }
+    )
+    def put(self, request, *args, **kwargs):
+        """
+        사용자가 구독한 캘린더의 활성화 상태 업데이트
+        """
+        calendar_id = request.data.get("calendar_id")
+        is_active = request.data.get("is_active")
+
+        if calendar_id is None or is_active is None:
+            return Response(
+                {"error": "캘린더 ID와 활성화 상태를 제공해야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            subscription = Subscription.objects.get(calendar_id=calendar_id, user=request.user)
+        except Subscription.DoesNotExist:
+            return Response(
+                {"error": "구독 정보를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        subscription.is_active = is_active
+        subscription.save()
+
+        return Response({"message": "캘린더 상태가 업데이트되었습니다."}, status=status.HTTP_200_OK)
+
 
 class SubscriptionDeleteAPIView(DestroyAPIView):
     """
@@ -663,114 +730,3 @@ class AdminInvitationView(APIView):
             # CalendarDetailSerializer를 사용하여 응답 직렬화
             response_data = CalendarDetailSerializer(calendar).data
             return Response(response_data, status=status.HTTP_200_OK)
-
-class ActiveSubscriptionsAPIView(ListAPIView):
-    """
-    활성화된 구독 캘린더 조회
-    """
-    serializer_class = SubscriptionSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return Subscription.objects.filter(user=self.request.user, is_active=True)
-
-    @extend_schema(
-        summary="활성화된 구독 캘린더 조회",
-        description="사용자가 체크박스로 활성화한 구독 캘린더 목록을 반환합니다.",
-        responses={200: SubscriptionSerializer(many=True)},
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-
-class UpdateActiveStatusAPIView(APIView):
-    """
-    캘린더 활성화 상태 변경
-    """
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary="캘린더 활성화 상태 변경",
-        description="사용자가 구독한 캘린더의 활성화 상태를 변경합니다.",
-        request={
-            "type": "object",
-            "properties": {
-                "subscription_id": {"type": "integer", "example": 1},
-                "is_active": {"type": "boolean", "example": True},
-            },
-            "required": ["subscription_id", "is_active"],
-        },
-        responses={
-            200: {
-                "description": "성공적으로 활성화 상태가 변경되었습니다.",
-                "content": {
-                    "application/json": {
-                        "example": {"message": "성공"}
-                    }
-                }
-            },
-            400: {
-                "description": "잘못된 요청입니다.",
-                "content": {
-                    "application/json": {
-                        "example": {"error": "구독 정보를 찾을 수 없습니다."}
-                    }
-                }
-            },
-        },
-    )
-    def post(self, request, *args, **kwargs):
-        subscription_id = request.data.get("subscription_id")
-        is_active = request.data.get("is_active")
-
-        try:
-            subscription = Subscription.objects.get(id=subscription_id, user=request.user)
-            subscription.is_active = is_active
-            subscription.save()
-            return Response({"message": "성공"}, status=200)
-        except Subscription.DoesNotExist:
-            return Response({"error": "구독 정보를 찾을 수 없습니다."}, status=404)
-
-
-class UpdateSubscriptionVisibilityAPIView(APIView):
-    """
-    구독 캘린더 표시 여부 업데이트
-    """
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        summary="구독 캘린더 표시 여부 업데이트",
-        description="체크박스 상태에 따라 구독 캘린더의 표시 여부를 업데이트합니다.",
-        request={
-            "type": "object",
-            "properties": {
-                "subscription_ids": {
-                    "type": "array",
-                    "items": {"type": "integer"},
-                },
-                "is_on_calendar": {
-                    "type": "boolean",
-                    "description": "캘린더 표시 여부"
-                }
-            },
-        },
-        responses={
-            200: {"type": "object", "properties": {"message": {"type": "string"}}},
-        },
-    )
-    def put(self, request):
-        subscription_ids = request.data.get("subscription_ids", [])
-        is_on_calendar = request.data.get("is_on_calendar", True)  # 기본값 True
-
-        user = request.user
-        # 트랜잭션으로 모든 작업 처리
-        with transaction.atomic():
-            # 모든 구독 캘린더를 비활성화
-            Subscription.objects.filter(user=user).update(is_visible=False, is_on_calendar=False)
-
-            # 요청한 ID들만 활성화
-            if subscription_ids:
-                Subscription.objects.filter(user=user, id__in=subscription_ids).update(is_visible=True,
-                                                                                       is_on_calendar=is_on_calendar)
-
-        return Response({"message": "구독 캘린더 표시 상태가 업데이트되었습니다."}, status=200)
