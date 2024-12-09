@@ -299,7 +299,6 @@ class CalendarSearchAPIView(ListAPIView):
                     "creator_nickname": calendar.creator.nickname,
                     "is_public": calendar.is_public,
                     "color": calendar.color,
-                    "created_at": calendar.created_at,
                 },
                 "is_subscribed": Subscription.objects.filter(
                     user=request.user, calendar=calendar
