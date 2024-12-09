@@ -105,6 +105,54 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class SubscriptionCreateSerializer(serializers.ModelSerializer):
+    """
+    구독 생성 시 사용하는 간단한 Serializer
+    """
+
+    calendar_id = serializers.PrimaryKeyRelatedField(
+        queryset=Calendar.objects.all(),
+        source="calendar",
+        write_only=True,
+    )
+
+    class Meta:
+        model = Subscription
+        fields = ["calendar_id"]
+
+    def create(self, validated_data):
+        """
+        구독 생성 시 요청 사용자를 자동으로 설정
+        """
+        user = self.context["request"].user
+        return Subscription.objects.create(user=user, **validated_data)
+
+class SubscriptionDetailSerializer(serializers.ModelSerializer):
+    """
+    구독 조회 시 사용하는 상세 Serializer
+    """
+
+    calendar_name = serializers.CharField(source="calendar.name")
+    creator_nickname = serializers.CharField(source="calendar.creator.nickname")
+    is_visible = serializers.BooleanField()
+    is_on_calendar = serializers.BooleanField()
+    is_active = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+
+    # calendar = CalendarDetailSerializer(read_only=True)
+
+    class Meta:
+        model = Subscription
+        fields = [
+            "calendar_name",
+            "creator_nickname",
+            "is_visible",
+            "is_on_calendar",
+            "is_active",
+            "created_at",
+        ]
+
+
 class AdminInvitationSerializer(serializers.Serializer):
     """
     관리자 초대 코드 처리 Serializer

@@ -19,7 +19,10 @@ from .serializers import (
     CalendarSearchResultSerializer,
     AdminCalendarSerializer,
     CalendarSearchSerializer,
-    SubscriptionSerializer, AdminInvitationSerializer
+    SubscriptionSerializer,
+    SubscriptionCreateSerializer,
+    SubscriptionDetailSerializer,
+    AdminInvitationSerializer
 )
 
 class CalendarListCreateAPIView(ListCreateAPIView):
@@ -158,14 +161,21 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
     구독한 캘린더 조회 및 구독 추가
     """
 
-    serializer_class = SubscriptionSerializer
+    serializer_class = SubscriptionCreateSerializer
     permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return SubscriptionCreateSerializer
+        return SubscriptionDetailSerializer
+
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)
 
     @extend_schema(
         summary="구독한 캘린더 목록 조회",
         description="현재 사용자가 구독한 캘린더 목록을 반환합니다.",
-        responses={200: SubscriptionSerializer(many=True)},
+        responses={200: SubscriptionDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
@@ -173,11 +183,74 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
     @extend_schema(
         summary="캘린더 구독 추가",
         description="특정 캘린더를 구독합니다.",
-        request=SubscriptionSerializer,
-        responses={201: SubscriptionSerializer},
+        request=SubscriptionCreateSerializer,
+        responses={
+            201: SubscriptionDetailSerializer,
+            # 201: {
+            #     "description": "구독 성공",
+            #     "content": {
+            #         "application/json": {
+            #             "example": {
+            #                 "message": "구독 성공",
+            #                 "calendar": {
+            #                     "name": "Sample Calendar",
+            #                     "description": "Sample Description",
+            #                     "is_public": True,
+            #                     "color": "#FFFFFF",
+            #                     "creator_id": 1
+            #                 },
+            #                 "subscription": {
+            #                     "type": "object",
+            #                     "properties": {
+            #                         "id": {"type": "integer"},
+            #                         "calendar_name": {"type": "string"},
+            #                         "creator_nickname": {"type": "string"},
+            #                         "is_visible": {"type": "boolean"},
+            #                         "is_on_calendar": {"type": "boolean"},
+            #                         "is_active": {"type": "boolean"},
+            #                         "created_at": {"type": "string", "format": "date-time"}
+            #                     }
+            #                 }
+            #             }
+            #         }
+            #     }
+            # },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "비공개 캘린더는 구독할 수 없습니다."}
+                    }
+                }
+            },
+            404: {
+                "description": "캘린더를 찾을 수 없음",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "캘린더를 찾을 수 없습니다."}
+                    }
+                }
+            }
+        }
     )
     def post(self, request, *args, **kwargs):
+        # ... 구독 로직 ...
+        return Response({
+            "message": "캘린더 구독이 완료되었습니다.",
+            "subscription": {
+                "id": subscription.id,
+                "calendar_name": subscription.calendar.name,
+                "creator_nickname": subscription.calendar.creator.nickname,
+                "is_visible": subscription.is_visible,
+                "is_on_calendar": subscription.is_on_calendar,
+                "is_active": subscription.is_active,
+                "created_at": subscription.created_at
+            }
+        }, status=201)
         calendar_id = kwargs.get('calendar_id')
+        if not calendar_id:
+            return Response({"error": "캘린더 ID를 제공해야 합니다."}, status=400)
+
         try:
             calendar = Calendar.objects.get(id=calendar_id)
             if not calendar.is_public:
@@ -206,16 +279,25 @@ class SubscriptionDeleteAPIView(DestroyAPIView):
     구독 취소
     """
 
-    serializer_class = SubscriptionSerializer
+    # serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
 
     @extend_schema(
         summary="구독 삭제",
         description="특정 캘린더 구독을 삭제합니다.",
-        responses={204: None},
+        responses={
+            204: {
+                "description": "구독 취소 성공",
+                "content": {"application/json": {"example": {"message": "캘린더 구독 취소 성공"}}}
+            },
+            400: {"description": "구독되지 않은 캘린더입니다."},
+            404: {"description": "캘린더를 찾을 수 없습니다."}
+        },
     )
-    def delete(self, request, calendar_id):
+    def delete(self, request, calendar_id, *args, **kwargs):
+        if not calendar_id:
+            return Response({"error": "캘린더 ID를 제공해야 합니다."}, status=400)
+
         try:
             calendar = Calendar.objects.get(id=calendar_id)
             subscription = Subscription.objects.filter(user=request.user, calendar=calendar)
