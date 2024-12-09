@@ -30,21 +30,13 @@ class UserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """사용자 정보 수정 Serializer"""
 
-    user_id = serializers.IntegerField(read_only=True)  # source 제거 (필드명과 동일)
-    user_email = (
-        serializers.EmailField()
-    )  # source 제거하고 모델 필드와 매핑은 Meta에서 처리
-    user_name = serializers.CharField()
-    user_birth = serializers.DateField()
-    user_nickname = serializers.CharField()
+    user_id = serializers.IntegerField(read_only=True)
+    user_email = serializers.EmailField(source="email")
+    user_name = serializers.CharField(source="username")
+    user_birth = serializers.DateField(source="birth")
+    user_nickname = serializers.CharField(source="nickname")
 
     class Meta:
         model = User
         fields = ["user_id", "user_email", "user_name", "user_birth", "user_nickname"]
         read_only_fields = ["user_id"]
-        extra_kwargs = {
-            "user_email": {"source": "email"},
-            "user_name": {"source": "username"},
-            "user_birth": {"source": "birth"},
-            "user_nickname": {"source": "nickname"},
-        }

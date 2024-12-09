@@ -7,15 +7,11 @@ from django.utils import timezone
 from dotenv import load_dotenv
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-
-from .models import User
-from .serializers import UserSerializer, UserUpdateSerializer
-
-load_dotenv()
 
 from .models import User
 from .serializers import UserSerializer, UserUpdateSerializer
@@ -59,70 +55,70 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
 
     @extend_schema(tags=["사용자"])
     def get_object(self):
-        if not self.request.user.is_authenticated:
-            return Response(
-                {
-                    "error": "인증 실패",
-                    "message": "로그인이 필요합니다. 다시 로그인해주세요.",
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         try:
+            if not self.request.user.is_authenticated:
+                raise PermissionDenied(
+                    {
+                        "error": "인증 실패",
+                        "message": "로그인이 필요합니다. 다시 로그인해주세요.",
+                    }
+                )
+
             user = self.request.user
             if not user:
-                return Response(
+                raise NotFound(
                     {
                         "error": "사용자 정보 없음",
                         "message": "현재 로그인된 사용자의 정보를 찾을 수 없습니다.",
-                    },
-                    status=status.HTTP_404_NOT_FOUND,
+                    }
                 )
             return user
         except User.DoesNotExist:
-            return Response(
+            raise NotFound(
                 {
                     "error": "사용자 정보 없음",
                     "message": "현재 로그인된 사용자의 정보를 찾을 수 없습니다.",
-                },
-                status=status.HTTP_404_NOT_FOUND,
+                }
             )
 
     @extend_schema(tags=["사용자"])
     def get(self, request, *args, **kwargs):
-        user = self.get_object()
-        if isinstance(user, Response):
-            return user
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
+        try:
+            user = self.get_object()
+            serializer = self.get_serializer(user)
+            return Response(serializer.data)
+        except (PermissionDenied, NotFound) as e:
+            return Response(e.detail, status=e.status_code)
 
     @extend_schema(tags=["사용자"])
     def put(self, request, *args, **kwargs):
-        user = self.get_object()
-        if isinstance(user, Response):  # 에러 응답인 경우
-            return user
+        try:
+            user = self.get_object()
 
-        # 닉네임 중복 체크
-        new_nickname = request.data.get("nickname")
-        if (
-            new_nickname
-            and User.objects.filter(nickname=new_nickname)
-            .exclude(user_id=user.user_id)
-            .exists()
-        ):
-            return Response(
-                {
-                    "error": "닉네임 중복",
-                    "message": "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            # 닉네임 중복 체크
+            new_nickname = request.data.get("nickname")
+            if (
+                new_nickname
+                and User.objects.filter(nickname=new_nickname)
+                .exclude(user_id=user.user_id)
+                .exists()
+            ):
+                return Response(
+                    {
+                        "error": "닉네임 중복",
+                        "message": "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해주세요.",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        serializer = self.get_serializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
+            serializer = self.get_serializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except (PermissionDenied, NotFound) as e:
+            return Response(e.detail, status=e.status_code)
 
 
 class UserDeleteView(generics.DestroyAPIView):
@@ -174,8 +170,8 @@ class GoogleLoginView(APIView):
 
             # 요청 헤더 추가
             headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
             }
 
             response = requests.post(token_url, data=data, headers=headers)
@@ -196,13 +192,16 @@ class GoogleLoginView(APIView):
             userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
             userinfo_headers = {
                 "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json"
+                "Accept": "application/json",
             }
             userinfo_response = requests.get(userinfo_url, headers=userinfo_headers)
 
             if userinfo_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": userinfo_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": userinfo_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -234,7 +233,7 @@ class GoogleLoginView(APIView):
                                 "email": new_user.email,
                                 "username": new_user.username,
                                 "nickname": new_user.nickname,
-                            }
+                            },
                         },
                         status=status.HTTP_200_OK,
                     )
@@ -248,7 +247,7 @@ class GoogleLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -271,15 +270,14 @@ class GoogleLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -288,7 +286,7 @@ class NaverLoginView(APIView):
     def post(self, request):
         try:
             code = request.data.get("code")
-            state = request.data.get("state")
+            state = request.data.get("state")  # 네이버는 state 값 필요
             if not code:
                 return Response(
                     {"error": "인가 코드가 제공되지 않았습니다."},
@@ -310,21 +308,39 @@ class NaverLoginView(APIView):
                 "state": state,
             }
 
-            token_response = requests.post(token_url, data=data)
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            }
+
+            token_response = requests.post(token_url, data=data, headers=headers)
             if token_response.status_code != 200:
                 return Response(
                     {"error": "토큰 가져오기 실패", "details": token_response.text},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
-            access_token = token_response.json().get("access_token")
+            token_data = token_response.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                return Response(
+                    {"error": "액세스 토큰을 찾을 수 없습니다."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
             user_info_url = "https://openapi.naver.com/v1/nid/me"
-            headers = {"Authorization": f"Bearer {access_token}"}
-            user_info_response = requests.get(user_info_url, headers=headers)
+            user_headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/json",
+            }
+            user_info_response = requests.get(user_info_url, headers=user_headers)
 
             if user_info_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": user_info_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": user_info_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -336,33 +352,71 @@ class NaverLoginView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            user, created = User.objects.get_or_create(email=email)
-            if created or not user.is_active:
-                user.username = user_info.get("name", "")
-                user.birth = timezone.now().date()
-                user.nickname = user_info.get("nickname", "")
-                user.set_unusable_password()
-                user.is_active = True
-                user.save()
+            try:
+                user = User.objects.get(email=email)
+                if not user.is_active:
+                    new_user = User.objects.create_user(
+                        email=email,
+                        username=user_info.get("name", ""),
+                        birth=timezone.now().date(),
+                        nickname=generate_random_nickname(),
+                    )
+                    new_user.set_unusable_password()
+                    new_user.save()
+                    refresh = RefreshToken.for_user(new_user)
+                    return Response(
+                        {
+                            "access": str(refresh.access_token),
+                            "refresh": str(refresh),
+                            "user": {
+                                "email": new_user.email,
+                                "username": new_user.username,
+                                "nickname": new_user.nickname,
+                            },
+                        },
+                        status=status.HTTP_200_OK,
+                    )
 
-            refresh = RefreshToken.for_user(user)
-            return Response(
-                {
-                    "access": str(refresh.access_token),
-                    "refresh": str(refresh),
-                    "user": {
-                        "email": user.email,
-                        "username": user.username,
-                        "nickname": user.nickname,
-                    }
-                },
-                status=status.HTTP_200_OK,
-            )
+                refresh = RefreshToken.for_user(user)
+                return Response(
+                    {
+                        "access": str(refresh.access_token),
+                        "refresh": str(refresh),
+                        "user": {
+                            "email": user.email,
+                            "username": user.username,
+                            "nickname": user.nickname,
+                        },
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            except User.DoesNotExist:
+                user = User.objects.create_user(
+                    email=email,
+                    username=user_info.get("name", ""),
+                    birth=timezone.now().date(),
+                    nickname=generate_random_nickname(),
+                )
+                user.set_unusable_password()
+                user.save()
+                refresh = RefreshToken.for_user(user)
+                return Response(
+                    {
+                        "access": str(refresh.access_token),
+                        "refresh": str(refresh),
+                        "user": {
+                            "email": user.email,
+                            "username": user.username,
+                            "nickname": user.nickname,
+                        },
+                    },
+                    status=status.HTTP_200_OK,
+                )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -386,10 +440,9 @@ class KakaoLoginView(APIView):
                 "code": code,
             }
 
-            # 요청 헤더 추가
             headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json'
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
             }
 
             token_response = requests.post(token_url, data=data, headers=headers)
@@ -410,13 +463,16 @@ class KakaoLoginView(APIView):
             user_info_url = "https://kapi.kakao.com/v2/user/me"
             user_headers = {
                 "Authorization": f"Bearer {access_token}",
-                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
             }
-
             user_info_response = requests.get(user_info_url, headers=user_headers)
+
             if user_info_response.status_code != 200:
                 return Response(
-                    {"error": "유저정보 가져오기 실패", "details": user_info_response.text},
+                    {
+                        "error": "유저정보 가져오기 실패",
+                        "details": user_info_response.text,
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
@@ -435,7 +491,7 @@ class KakaoLoginView(APIView):
                         email=email,
                         username=user_info.get("properties", {}).get("nickname", ""),
                         birth=timezone.now().date(),
-                        nickname=user_info.get("properties", {}).get("nickname", ""),
+                        nickname=generate_random_nickname(),
                     )
                     new_user.set_unusable_password()
                     new_user.save()
@@ -448,7 +504,7 @@ class KakaoLoginView(APIView):
                                 "email": new_user.email,
                                 "username": new_user.username,
                                 "nickname": new_user.nickname,
-                            }
+                            },
                         },
                         status=status.HTTP_200_OK,
                     )
@@ -462,7 +518,7 @@ class KakaoLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
@@ -472,7 +528,7 @@ class KakaoLoginView(APIView):
                     email=email,
                     username=user_info.get("properties", {}).get("nickname", ""),
                     birth=timezone.now().date(),
-                    nickname=user_info.get("properties", {}).get("nickname", ""),
+                    nickname=generate_random_nickname(),
                 )
                 user.set_unusable_password()
                 user.save()
@@ -485,13 +541,12 @@ class KakaoLoginView(APIView):
                             "email": user.email,
                             "username": user.username,
                             "nickname": user.nickname,
-                        }
+                        },
                     },
                     status=status.HTTP_200_OK,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
