@@ -142,3 +142,30 @@ class AdminInvitationSerializer(serializers.Serializer):
             raise serializers.ValidationError("초대 코드가 유효하지 않습니다.")
         self.calendar.admins.add(user)  # 관리자로 추가
         return self.calendar
+
+
+class AdminCalendarSerializer(serializers.ModelSerializer):
+    creator_id = serializers.IntegerField(source="creator.id", read_only=True)
+    admin_members = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Calendar
+        fields = ["name", "creator_id", "admin_members"]
+
+    def get_admin_members(self, obj):
+        return list(obj.admins.values_list("nickname", flat=True))
+
+
+class CalendarSearchSerializer(serializers.ModelSerializer):
+    creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Calendar
+        fields = ["calendar_id", "name", "creator_nickname", "is_subscribed"]
+
+    def get_is_subscribed(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            return Subscription.objects.filter(user=request.user, calendar=obj).exists()
+        return False

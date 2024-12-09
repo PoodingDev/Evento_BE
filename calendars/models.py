@@ -8,7 +8,7 @@ from user.models import User
 
 
 class Calendar(models.Model):
-    calendar_id = models.BigIntegerField(primary_key=True)
+    calendar_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -44,8 +44,13 @@ class Calendar(models.Model):
             )
 
         # 생성자를 자동으로 관리자로 추가
-        if self.pk and not self.admins.filter(id=self.creator.id).exists():
-            self.admins.add(self.creator)
+        if (
+            self.pk
+            and not CalendarAdmin.objects.filter(
+                user=self.creator, calendar=self
+            ).exists()
+        ):
+            CalendarAdmin.objects.create(user=self.creator, calendar=self)
 
     def __str__(self):
         return f"{self.name} (ID: {self.calendar_id})"
@@ -72,8 +77,9 @@ class Subscription(models.Model):
     is_active = models.BooleanField(default=True)  # 체크박스 상태
 
     class Meta:
-        unique_together = ("user", "calendar")
-        ordering = ("created_at",)
+        pass
+        # unique_together = ("user", "calendar")
+        # ordering = ("created_at",)
 
     def __str__(self):
         return f"{self.user.nickname} subscribed to {self.calendar.name}"
