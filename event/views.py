@@ -17,7 +17,9 @@ with open("event_schedule.csv", "w", newline="") as file:
     )
 
 import pandas as pd
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import (
@@ -30,7 +32,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Calendar, Event
-from .serializers import PrivateEventSerializer, PublicEventSerializer
+from .serializers import EventSerializer, PrivateEventSerializer, PublicEventSerializer
 
 
 class PublicEventListAPIView(ListAPIView):
@@ -126,46 +128,52 @@ class PrivateEventCreateAPIView(CreateAPIView):
 class EventRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     """
     이벤트 상세 조회, 수정, 삭제
-    - GET: 특정 이벤트의 상세 정보를 반환합니다.
-    - PUT: 특정 이벤트 정보를 수정합니다.
-    - DELETE: 특정 이벤트를 삭제합니다.
     """
 
-    serializer_class = PublicEventSerializer
+    serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = "event_id"
+
+    def get_queryset(self):
+        return Event.objects.all()
+
+    def perform_destroy(self, instance):
+        """이벤트 삭제 전 권한 확인"""
+        try:
+            calendar_id = instance.calendar_id_id  # ForeignKey 필드의 ID 접근
+            calendar = Calendar.objects.get(calendar_id=calendar_id)
+
+            if (
+                self.request.user == calendar.creator
+                or self.request.user in calendar.admins.all()
+            ):
+                instance.delete()
+            else:
+                raise PermissionDenied("이 이벤트를 삭제할 권한이 없습니다.")
+        except Calendar.DoesNotExist:
+            raise Http404("캘린더를 찾을 수 없습니다.")
+
+    def handle_exception(self, exc):
+        if isinstance(exc, Http404):
+            return Response(
+                {"error": "해당 이벤트나 캘린더를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        elif isinstance(exc, PermissionDenied):
+            return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
+        return super().handle_exception(exc)
 
     @extend_schema(
-        # tags=["이벤트"],
-        summary="이벤트 상세 조회",
-        description="특정 이벤트의 상세 정보를 반환합니다.",
-        responses={200: PublicEventSerializer},
-    )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-    @extend_schema(
-        # tags=["이벤트"],
-        summary="이벤트 수정",
-        description="특정 이벤트의 정보를 수정합니다.",
-        request=PublicEventSerializer,
-        responses={200: PublicEventSerializer},
-    )
-    def put(self, request, *args, **kwargs):
-        return super().put(request, *args, **kwargs)
-
-    @extend_schema(
-        # tags=["이벤트"],
         summary="이벤트 삭제",
-        description="특정 이벤트를 삭제합니다.",
-        responses={204: None},
+        description="특정 이벤트를 삭제합니다. 캘린더 관리자만 삭제할 수 있습니다.",
+        responses={
+            204: None,
+            403: {"description": "이 이벤트를 삭제할 권한이 없습니다."},
+            404: {"description": "해당 이벤트를 찾을 수 없습니다."},
+        },
     )
     def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(
-            {"detail": f"'{instance.title}' 이벤트가 삭제되었습니다."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
+        return super().delete(request, *args, **kwargs)
 
 
 class EventUploadView(APIView):

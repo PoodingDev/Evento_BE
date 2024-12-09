@@ -26,8 +26,12 @@ urlpatterns = [
         PrivateEventCreateAPIView.as_view(),
         name="private-event-create",
     ),
-    # 이벤트 상세 조회, 수정, 삭제
-    path("<int:pk>/", EventRetrieveUpdateDestroyAPIView.as_view(), name="event-detail"),
+    # 이벤트 상세 조회, 수정, 삭제 (UUID 형식의 event_id 사용)
+    path(
+        "<uuid:event_id>/",
+        EventRetrieveUpdateDestroyAPIView.as_view(),
+        name="event-detail",
+    ),
     # CSV 업로드 및 업데이트
     path("upload/", EventUploadView.as_view(), name="event-upload"),
 ]
