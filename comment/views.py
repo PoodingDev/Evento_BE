@@ -33,6 +33,7 @@ class CommentListCreateView(APIView):
                 name="event_id",
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.PATH,
+                description="이벤트 UUID",
                 required=True,
             )
         ],

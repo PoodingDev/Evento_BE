@@ -75,20 +75,41 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     구독 데이터를 직렬화하는 Serializer
     """
 
-    # 읽기 전용 캘린더 정보
-    calendar = CalendarDetailSerializer(read_only=True)
-
-    # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
-    calendar_id = serializers.PrimaryKeyRelatedField(
-        queryset=Calendar.objects.all(),
-        source="calendar",
-        write_only=True,
+    calendar_id = serializers.IntegerField(
+        source="calendar.calendar_id", read_only=True
+    )
+    name = serializers.CharField(source="calendar.name", read_only=True)
+    description = serializers.CharField(source="calendar.description", read_only=True)
+    is_public = serializers.BooleanField(source="calendar.is_public", read_only=True)
+    color = serializers.CharField(source="calendar.color", read_only=True)
+    creator = serializers.IntegerField(source="calendar.creator.id", read_only=True)
+    creator_nickname = serializers.CharField(
+        source="calendar.creator.nickname", read_only=True
+    )
+    invitation_code = serializers.CharField(
+        source="calendar.invitation_code", read_only=True
+    )
+    admins = serializers.PrimaryKeyRelatedField(
+        source="calendar.admins", many=True, read_only=True
     )
 
     class Meta:
         model = Subscription
-        fields = ["id", "user", "calendar", "calendar_id", "created_at"]
-        read_only_fields = ["user", "created_at"]  # 사용자는 서버에서 설정
+        fields = [
+            "id",
+            "user",
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "creator",
+            "creator_nickname",
+            "invitation_code",
+            "admins",
+        ]
+        read_only_fields = ["user", "created_at"]
 
     def create(self, validated_data):
         """

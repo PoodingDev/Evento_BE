@@ -1,3 +1,5 @@
+import uuid
+
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import status
 from rest_framework.response import Response
@@ -60,9 +62,13 @@ class CommentService:
     @staticmethod
     def get_event(event_id):
         try:
+            # UUID 문자열을 그대로 사용
+            event_uuid = uuid.UUID(event_id)
             return Event.objects.get(event_id=event_id)
         except ObjectDoesNotExist:
             raise EventNotFoundException()
+        except ValueError:
+            raise ValidationError("유효한 UUID 형식이 아닙니다.")
 
     @staticmethod
     def get_comment(comment_id):
@@ -72,10 +78,10 @@ class CommentService:
             raise CommentNotFoundException()
 
     @classmethod
-    def get_comments(cls, request, event):
+    def get_comments(cls, request, event_id):
         try:
-            cls.check_comment_permission(request.user)
-            comments = Comment.objects.filter(event_id=event)
+            cls.check_comment_permission(request.user, event_id)
+            comments = Comment.objects.filter(event_id=event_id)
             return comments, None
         except CommentPermissionDeniedException as e:
             return None, {"error": e.error, "message": e.message}
@@ -83,7 +89,7 @@ class CommentService:
     @classmethod
     def create_comment(cls, request, event_id):
         """댓글 생성"""
-        # 권한 확인
+        # 권한 확인 - event_id 전달
         cls.check_comment_permission(request.user, event_id)
 
         # 이벤트 확인
