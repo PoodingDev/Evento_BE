@@ -157,9 +157,6 @@ class LogoutView(APIView):
         )
 
 
-def generate_random_nickname():
-    return "".join(random.choices(string.ascii_letters + string.digits, k=8))
-
 
 class GoogleLoginView(APIView):
     @extend_schema(tags=["사용자"])
