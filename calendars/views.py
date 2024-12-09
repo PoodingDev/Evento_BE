@@ -429,9 +429,7 @@ class CalendarMembersAPIView(ListAPIView):
 
 
 class AdminInvitationView(APIView):
-    """
-    초대 코드를 통해 캘린더의 관리자로 추가하는 View
-    """
+    """초대 코드를 통해 캘린더의 관리자로 추가하는 View"""
 
     permission_classes = [IsAuthenticated]
 
@@ -460,61 +458,41 @@ class AdminInvitationView(APIView):
         },
     )
     def post(self, request, *args, **kwargs):
-        serializer = AdminInvitationSerializer(data=request.data)
+        serializer = AdminInvitationSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         invitation_code = serializer.validated_data["invitation_code"]
-
-        if not invitation_code:
-            return Response(
-                {"error": "초대 코드를 입력하세요."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         try:
             # 초대 코드에 해당하는 캘린더 찾기
             calendar = Calendar.objects.get(invitation_code=invitation_code)
+
+            # 이미 관리자인지 확인
+            if request.user == calendar.creator:
+                return Response(
+                    {"error": "캘린더 생성자는 이미 관리자입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if request.user in calendar.admins.all():
+                return Response(
+                    {"error": "이미 관리자로 추가된 캘린더입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 관리자로 추가
+            calendar.admins.add(request.user)
+
+            return Response(
+                CalendarDetailSerializer(calendar).data, status=status.HTTP_200_OK
+            )
+
         except Calendar.DoesNotExist:
             return Response(
                 {"error": "유효하지 않은 초대 코드입니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
-
-        user = request.user
-
-        # 생성자가 이미 관리자 상태인 경우 처리
-        if user == calendar.creator:
-            return Response(
-                {"error": "캘린더 생성자는 이미 관리자입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 이미 관리자인지 확인
-        if calendar in user.created_calendars.all():
-            return Response(
-                {"message": "이미 해당 캘린더의 관리자입니다."},
-                status=status.HTTP_200_OK,
-            )
-
-            # 관리자로 추가
-            calendar.admins.add(user)
-            return Response(
-                {
-                    "message": "관리자로 성공적으로 추가되었습니다.",
-                    "calendar": {
-                        "calendar_id": calendar.calendar_id,
-                        "name": calendar.name,
-                        "description": calendar.description,
-                        "is_public": calendar.is_public,
-                        "color": calendar.color,
-                        "creator": calendar.creator.id,
-                    },
-                },
-                status=200,
-            )
-
-            # CalendarDetailSerializer를 사용하여 응답 직렬화
-            response_data = CalendarDetailSerializer(calendar).data
-            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ActiveSubscriptionsAPIView(ListAPIView):
