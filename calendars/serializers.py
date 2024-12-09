@@ -92,6 +92,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         구독 생성 시 현재 요청 사용자를 user로 설정
         """
         user = self.context["request"].user  # 요청 사용자 가져오기
+        validated_data.pop("user", None)
         subscription = Subscription.objects.create(user=user, **validated_data)
         return subscription
 

@@ -166,7 +166,6 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
     serializer_class = SubscriptionSerializer
     permission_classes = [IsAuthenticated]
 
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
     def get_queryset(self):
         return Subscription.objects.filter(user=self.request.user)
 
@@ -190,14 +189,17 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
 
         # 중복 체크
         if Subscription.objects.filter(
-            user_id=user.id, calendar_id=calendar_id
+            user_id=user.pk, calendar_id=calendar_id
         ).exists():
             return Response(
                 {"error": "이미 구독된 캘린더입니다."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = SubscriptionSerializer(data=request.data)
+        # Serializer 생성 시 context에 request 추가
+        serializer = SubscriptionSerializer(
+            data=request.data, context={"request": request}
+        )
         if serializer.is_valid():
             serializer.save(user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
