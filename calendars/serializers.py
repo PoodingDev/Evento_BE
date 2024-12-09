@@ -3,14 +3,55 @@ from rest_framework import serializers
 from .models import Calendar, Subscription
 
 
-class CalendarSerializer(serializers.ModelSerializer):
-    """
-    캘린더 데이터를 직렬화하는 Serializer
-    """
 
+class CalendarCreateSerializer(serializers.ModelSerializer):
+    """
+    캘린더 생성용 Serializer (초대 코드 포함)
+    """
     class Meta:
         model = Calendar
-        fields = "__all__"
+        fields = [
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "invitation_code",  # 초대 코드 포함
+            "creator",
+            "admins",
+        ]
+
+    def to_representation(self, instance):
+        """
+        사용자 권한에 따라 invitation_code를 동적으로 제외
+        """
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        # 관리자 권한이 없는 경우 초대 코드 제거
+        if request and not instance.has_admin_permission(request.user):
+            representation.pop("invitation_code", None)
+
+        return representation
+
+class CalendarDetailSerializer(serializers.ModelSerializer):
+    """
+    캘린더 조회용 Serializer (초대 코드 제외)
+    """
+    class Meta:
+        model = Calendar
+        fields = [
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "creator",
+            "admins",
+        ]
+        # 초대 코드는 포함하지 않음
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -19,7 +60,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     """
 
     # 읽기 전용 캘린더 정보
-    calendar = CalendarSerializer(read_only=True)
+    calendar = CalendarDetailSerializer(read_only=True)
 
     # 쓰기 전용 캘린더 ID (구독 생성 시 사용)
     calendar_id = serializers.PrimaryKeyRelatedField(
@@ -56,7 +97,7 @@ class AdminInvitationSerializer(serializers.Serializer):
     """
 
     invitation_code = serializers.CharField(max_length=255, help_text="초대 코드", write_only=True)
-    calendar = CalendarSerializer(read_only=True)
+    calendar = CalendarCreateSerializer(read_only=True)
 
     def validate_invitation_code(self, value):
         """

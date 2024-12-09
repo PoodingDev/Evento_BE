@@ -18,7 +18,7 @@ urlpatterns = [
     path("", CalendarListCreateAPIView.as_view(), name="calendar-list-create"),
 
     # 캘린더 상세 조회, 수정, 삭제
-    path("<int:pk>/", CalendarRetrieveUpdateDestroyAPIView.as_view(), name="calendar-detail"),
+    path("<int:pk>/", CalendarRetrieveUpdateDestroyAPIView.as_view(), name="calendar-retrieve"),
 
     # 캘린더 구독 및 취소
     path("<int:calendar_id>/subscriptions/", SubscriptionListCreateAPIView.as_view(), name="subscription-list-create"),

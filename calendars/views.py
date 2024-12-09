@@ -14,10 +14,9 @@ from rest_framework import status
 from user.models import User
 from .models import Calendar, Subscription
 from .serializers import (
-    CalendarSerializer,
+    CalendarCreateSerializer,
+    CalendarDetailSerializer,
     SubscriptionSerializer, AdminInvitationSerializer
-
-
 )
 
 class CalendarListCreateAPIView(ListCreateAPIView):
@@ -26,14 +25,20 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     """
 
     queryset = Calendar.objects.all()
-    serializer_class = CalendarSerializer
+    serializer_class = CalendarCreateSerializer
     permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            # 생성 시 초대 코드 포함 Serializer
+            return CalendarCreateSerializer
+        # 조회 시 초대 코드 제외 Serializer
+        return CalendarDetailSerializer
 
     @extend_schema(
         summary="캘린더 목록 조회",
         description="현재 사용자가 생성한 캘린더 목록을 반환합니다.",
-        responses={200: CalendarSerializer(many=True)},
+        responses={200: CalendarDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
@@ -41,8 +46,8 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     @extend_schema(
         summary="캘린더 생성",
         description="새로운 캘린더를 생성합니다.",
-        request=CalendarSerializer,
-        responses={201: CalendarSerializer},
+        request=CalendarCreateSerializer,
+        responses={201: CalendarCreateSerializer(many=True)},
     )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
@@ -67,23 +72,31 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     """
 
     queryset = Calendar.objects.all()
-    serializer_class = CalendarSerializer
+    serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
-    # permission_classes = [AllowAny]  # 인증 없이 접근 가능
 
     @extend_schema(
         summary="캘린더 상세 조회",
         description="특정 캘린더의 세부 정보를 반환합니다.",
-        responses={200: CalendarSerializer},
+        responses={200: CalendarDetailSerializer(many=True)},
     )
+    def get_serializer_context(self):
+        """
+        Serializer에 request context 전달
+        """
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
     def get(self, request, *args, **kwargs):
+        self.serializer_context = {"request": self.request}
         return super().get(request, *args, **kwargs)
 
     @extend_schema(
         summary="캘린더 수정",
         description="특정 캘린더의 정보를 수정합니다.",
-        request=CalendarSerializer,
-        responses={200: CalendarSerializer},
+        request=CalendarDetailSerializer,
+        responses={200: CalendarDetailSerializer},
     )
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
@@ -139,7 +152,7 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
             if created:
                 return Response({
                     "message": "구독 성공",
-                    "calendar": CalendarSerializer(calendar).data
+                    "calendar": CalendarDetailSerializer(calendar).data
                 }, status=201)
             return Response({"error": "이미 구독 중인 캘린더입니다."}, status=400)
         except Calendar.DoesNotExist:
@@ -186,7 +199,7 @@ class CalendarSearchAPIView(ListAPIView):
     캘린더 및 유저 검색
     """
 
-    serializer_class = CalendarSerializer
+    serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter]
     search_fields = ["name", "creator__nickname"]
@@ -194,7 +207,7 @@ class CalendarSearchAPIView(ListAPIView):
     @extend_schema(
         summary="캘린더 및 유저 검색",
         description="닉네임 또는 캘린더 이름으로 공개된 캘린더를 검색합니다.",
-        responses={200: CalendarSerializer(many=True)},
+        responses={200: CalendarDetailSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
         queryset = Calendar.objects.filter(is_public=True)
@@ -204,7 +217,7 @@ class CalendarSearchAPIView(ListAPIView):
 
         data = [
             {
-                "calendar": CalendarSerializer(calendar).data,
+                "calendar": CalendarDetailSerializer(calendar).data,
                 "is_subscribed": Subscription.objects.filter(user=request.user, calendar=calendar).exists(),
             }
             for calendar in queryset
@@ -220,13 +233,13 @@ class AdminCalendarsAPIView(ListAPIView):
     관리 권한이 있는 캘린더 목록 조회
     """
 
-    serializer_class = CalendarSerializer
+    serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="관리 권한이 있는 캘린더 조회",
         description="현재 사용자가 생성했거나 관리 권한을 부여받은 모든 캘린더를 반환합니다.",
-        responses={200: CalendarSerializer(many=True)},
+        responses={200: CalendarDetailSerializer(many=True)},
     )
 
     def get_queryset(self):
@@ -281,17 +294,17 @@ class AdminInvitationView(APIView):
     @extend_schema(
         summary="관리자 초대",
         description="초대 코드를 입력받아 해당 캘린더의 관리자로 추가합니다.",
-        # request={
-        #     "type": "object",
-        #     "properties": {
-        #         "invitation_code": {
-        #             "type": "string",
-        #             "description": "캘린더 초대 코드",
-        #             "example": "ABC123",
-        #         },
-        #     },
-        #     "required": ["invitation_code"],
-        # },
+        request={
+            "type": "object",
+            "properties": {
+                "invitation_code": {
+                    "type": "string",
+                    "description": "캘린더 초대 코드",
+                    "example": "ABC123",
+                },
+            },
+            "required": ["invitation_code"],
+        },
         responses={
             200: {
                 "description": "관리자 추가 성공",
@@ -378,7 +391,6 @@ class AdminInvitationView(APIView):
                         "is_public": calendar.is_public,
                         "color": calendar.color,
                         "creator": calendar.creator.id,
-                        "invitation_code": calendar.invitation_code,
                     },
                 },
                 status=200,
@@ -422,10 +434,21 @@ class UpdateActiveStatusAPIView(APIView):
         },
         responses={
             200: {
-                "description": "활성화 상태가 성공적으로 변경되었습니다.",
-                "content": {"application/json": {"example": {"message": "성공"}}},
+                "description": "성공적으로 활성화 상태가 변경되었습니다.",
+                "content": {
+                    "application/json": {
+                        "example": {"message": "성공"}
+                    }
+                }
             },
-            400: {"description": "잘못된 요청"},
+            400: {
+                "description": "잘못된 요청입니다.",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "구독 정보를 찾을 수 없습니다."}
+                    }
+                }
+            },
         },
     )
     def post(self, request, *args, **kwargs):
@@ -470,15 +493,16 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
     def put(self, request):
         subscription_ids = request.data.get("subscription_ids", [])
         is_on_calendar = request.data.get("is_on_calendar", True)  # 기본값 True
-        user = request.user
 
+        user = request.user
         # 트랜잭션으로 모든 작업 처리
         with transaction.atomic():
             # 모든 구독 캘린더를 비활성화
-            Subscription.objects.filter(user=request.user).update(is_visible=False)
+            Subscription.objects.filter(user=user).update(is_visible=False, is_on_calendar=False)
 
-        # 요청한 ID들만 활성화
-        if subscription_ids:
-            Subscription.objects.filter(user=request.user, id__in=subscription_ids).update(is_visible=True)
+            # 요청한 ID들만 활성화
+            if subscription_ids:
+                Subscription.objects.filter(user=user, id__in=subscription_ids).update(is_visible=True,
+                                                                                       is_on_calendar=is_on_calendar)
 
         return Response({"message": "구독 캘린더 표시 상태가 업데이트되었습니다."}, status=200)
