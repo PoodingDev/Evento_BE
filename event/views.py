@@ -61,6 +61,10 @@ class PublicEventViewSet(ListCreateAPIView):
         serializer.save(admin_id=self.request.user)
 
 class PrivateEventViewSet(ListCreateAPIView):
+    """
+        비공개 이벤트 전용 ViewSet
+        """
+
     serializer_class = PrivateEventSerializer
     permission_classes = [IsAuthenticated]
 
@@ -79,22 +83,41 @@ class PrivateEventViewSet(ListCreateAPIView):
     @extend_schema(
         summary="비공개 이벤트 생성",
         request=PrivateEventSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=PrivateEventSerializer,
-                description="비공개 이벤트 생성 성공"
-            ),
-            400: OpenApiResponse(description="잘못된 요청")
-        }
+        # responses={
+        #     201: OpenApiResponse(
+        #         response=PrivateEventSerializer,
+        #         description="비공개 이벤트 생성 성공"
+        #     ),
+        #     400: OpenApiResponse(description="잘못된 요청")
+        # }
+        #
+        responses = {
+            201: PrivateEventSerializer,
+            400: {"description": "잘못된 요청"},
+        },
     )
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        """
+        비공개 이벤트 생성 시 is_public 강제 처리
+        """
+        data = request.data.copy()
+        data["is_public"] = False  # 강제로 False 설정
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
-        return Event.objects.filter(
-            is_public=False,
-            admin_id=self.request.user
-        )
+        """
+        비공개 이벤트 목록 조회
+        """
+        return Event.objects.filter(is_public=False, admin_id=self.request.user)
+
+    # def get_queryset(self):
+    #     return Event.objects.filter(
+    #         is_public=False,
+    #         admin_id=self.request.user
+    #     )
 
     def perform_create(self, serializer):
         serializer.save(admin_id=self.request.user)

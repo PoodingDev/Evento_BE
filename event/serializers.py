@@ -98,7 +98,41 @@ class PublicEventSerializer(EventSerializer):
         validated_data['is_public'] = True
         return super().create(validated_data)
 
-class PrivateEventSerializer(EventSerializer):
+class PrivateEventSerializer(serializers.ModelSerializer):
+    """
+    비공개 이벤트 전용 Serializer
+    """
+
+    class Meta:
+        model = Event
+        fields = [
+            "event_id",
+            "calendar_id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "admin_id",
+            "is_public",
+            "location",
+        ]
+        read_only_fields = ["event_id", "admin_id"]
+
+    def validate(self, data):
+        """
+        비공개 이벤트 요청에서 is_public 값 처리
+        """
+        if data.get("is_public", True):  # is_public이 True로 설정된 경우
+            raise serializers.ValidationError(
+                {"is_public": "비공개 이벤트는 is_public을 True로 설정할 수 없습니다."}
+            )
+        data["is_public"] = False  # 강제로 False 설정
+        return data
+
     def create(self, validated_data):
-        validated_data['is_public'] = False
+        """
+        비공개 이벤트 생성 시 요청 사용자를 admin_id로 설정
+        """
+        validated_data["admin_id"] = self.context["request"].user
+        validated_data["is_public"] = False  # 강제로 False 설정
         return super().create(validated_data)
