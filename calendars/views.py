@@ -151,8 +151,10 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         if self.request.user.is_authenticated:
-            # 현재 사용자가 생성한 캘린더만 접근 가능
-            return self.queryset.filter(creator=self.request.user)
+            # 생성자 또는 관리자로 속한 캘린더 조회/수정 가능
+            return self.queryset.filter(
+                models.Q(creator=self.request.user) | models.Q(admins=self.request.user)
+            ).distinct()
         return Calendar.objects.none()
 
 
