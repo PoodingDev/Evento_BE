@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
@@ -257,23 +257,49 @@ class CalendarSearchAPIView(ListAPIView):
     @extend_schema(
         summary="닉네임으로 시작하는 유저가 만든 공개 캘린더 검색",
         description="닉네임으로 시작하는 유저가 생성한 공개 캘린더를 검색합니다.",
-        responses={200: CalendarDetailSerializer(many=True)},
+        parameters=[
+            OpenApiParameter(
+                name="nickname",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="검색할 닉네임",
+                required=True,
+            )
+        ],
+        responses={ 
+            200: {
+                "type": "object",
+                "properties": {
+                    "calendar_id": {"type": "integer"},
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "creator_nickname": {"type": "string"},
+                    "is_public": {"type": "boolean"},
+                    "color": {"type": "string"},
+                    "created_at": {"type": "string", "format": "date-time"},
+                    "is_subscribed": {"type": "boolean"},
+                },
+            }
+        },
     )
-    def get(self, request, *args, **kwargs):
-        nickname = kwargs.get("nickname", "").strip()
-
+    def get(self, request, nickname):
         if not nickname:
             return Response({"error": "닉네임을 입력해주세요."}, status=400)
 
-        calendars = Calendar.objects.filter(
-            is_public=True, creator__nickname__istartswith=nickname
-        ).distinct()
+        calendars = (
+            Calendar.objects.filter(
+                is_public=True, creator__nickname__istartswith=nickname
+            )
+            .select_related("creator")
+            .distinct()
+        )
 
         data = []
         for calendar in calendars:
             is_subscribed = Subscription.objects.filter(
                 user=request.user, calendar=calendar
             ).exists()
+
             calendar_data = {
                 "calendar_id": calendar.calendar_id,
                 "name": calendar.name,
