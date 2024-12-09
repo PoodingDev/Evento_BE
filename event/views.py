@@ -17,6 +17,7 @@ with open("event_schedule.csv", "w", newline="") as file:
     )
 
 import pandas as pd
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import (
@@ -28,7 +29,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Event
+from .models import Calendar, Event
 from .serializers import PrivateEventSerializer, PublicEventSerializer
 
 
@@ -48,11 +49,22 @@ class PublicEventListAPIView(ListAPIView):
         responses={200: PublicEventSerializer(many=True)},
     )
     def get_queryset(self):
-        # 공개된 이벤트만 반환
-        return Event.objects.filter(is_public=True)
+        # 사용자가 관리자이거나 구독한 캘린더의 이벤트만 조회
+        return Event.objects.filter(
+            calendar_id__in=Calendar.objects.filter(
+                Q(creator=self.request.user)  # 캘린더 생성자
+                | Q(admins=self.request.user)  # 캘린더 관리자
+                | Q(
+                    subscriptions__user=self.request.user, subscriptions__is_active=True
+                )  # 구독자
+            )
+            .distinct()
+            .values_list("calendar_id", flat=True),
+            is_public=True,
+        )
 
 
-class PublicEventListCreateAPIView(CreateAPIView):
+class PublicEventCreateAPIView(CreateAPIView):
     """
     공개 이벤트 생성
     - POST: 새로운 공개 이벤트를 생성합니다.
@@ -92,7 +104,7 @@ class PrivateEventListAPIView(ListAPIView):
         return Event.objects.filter(admin_id=self.request.user, is_public=False)
 
 
-class PrivateEventListCreateAPIView(CreateAPIView):
+class PrivateEventCreateAPIView(CreateAPIView):
     """
     비공개 이벤트 생성
     - POST: 새로운 비공개 이벤트를 생성합니다.

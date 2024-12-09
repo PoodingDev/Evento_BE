@@ -3,10 +3,10 @@ from django.urls import path
 from .views import (
     EventRetrieveUpdateDestroyAPIView,
     EventUploadView,
+    PrivateEventCreateAPIView,
     PrivateEventListAPIView,
-    PrivateEventListCreateAPIView,
+    PublicEventCreateAPIView,
     PublicEventListAPIView,
-    PublicEventListCreateAPIView,
 )
 
 urlpatterns = [
@@ -15,7 +15,7 @@ urlpatterns = [
     # 공개 이벤트 생성
     path(
         "public/create/",
-        PublicEventListCreateAPIView.as_view(),
+        PublicEventCreateAPIView.as_view(),
         name="public-event-create",
     ),
     # 비공개 이벤트 목록 조회
@@ -23,7 +23,7 @@ urlpatterns = [
     # 비공개 이벤트 생성
     path(
         "private/create/",
-        PrivateEventListCreateAPIView.as_view(),
+        PrivateEventCreateAPIView.as_view(),
         name="private-event-create",
     ),
     # 이벤트 상세 조회, 수정, 삭제
