@@ -10,7 +10,7 @@ class EventSerializer(serializers.ModelSerializer):
     Event 모델에 대한 기본 Serializer
     """
 
-    is_liked = serializers.BooleanField(source="get_is_liked", read_only=True)
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -36,9 +36,10 @@ class EventSerializer(serializers.ModelSerializer):
         """
         request = self.context.get("request")
         if request and request.user.is_authenticated:
-            return FavoriteEvent.objects.filter(
+            is_liked = FavoriteEvent.objects.filter(
                 user=request.user, event_id=obj.event_id
-            ).exists()  # True 또는 False 반환
+            ).exists()
+            return is_liked  # True 또는 False 반환
         return False
 
     def create(self, validated_data):
