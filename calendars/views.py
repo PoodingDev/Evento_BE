@@ -230,9 +230,19 @@ class SubscriptionDeleteAPIView(APIView):
                 required=True,
             )
         ],
-        responses={204: None, 404: {"description": "구독 정보를 찾을 수 없습니다."}},
+        responses={
+            204: None,
+            400: {"description": "잘못된 요청입니다."},
+            404: {"description": "구독 정보를 찾을 수 없습니다."},
+        },
     )
     def delete(self, request, calendar_id):
+        if calendar_id == "undefined" or not calendar_id:
+            return Response(
+                {"error": "유효하지 않은 캘린더 ID입니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             subscription = Subscription.objects.get(
                 user=request.user, calendar_id=calendar_id
@@ -266,7 +276,7 @@ class CalendarSearchAPIView(ListAPIView):
                 required=True,
             )
         ],
-        responses={ 
+        responses={
             200: {
                 "type": "object",
                 "properties": {
