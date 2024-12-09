@@ -19,7 +19,7 @@ from .serializers import (
     CalendarSearchResultSerializer,
     AdminCalendarSerializer,
     CalendarSearchSerializer,
-    SubscriptionSerializer,
+    # SubscriptionSerializer,
     SubscriptionCreateSerializer,
     SubscriptionDetailSerializer,
     AdminInvitationSerializer,
@@ -41,6 +41,15 @@ class CalendarListCreateAPIView(ListCreateAPIView):
         # 조회 시 초대 코드 제외 Serializer
         return CalendarDetailSerializer
 
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            # 생성자 또는 관리자로 속한 캘린더 조회 가능
+            return self.queryset.filter(
+                models.Q(creator=self.request.user) |
+                models.Q(admins=self.request.user)
+            ).distinct()
+        return Calendar.objects.none() # 인증되지 않은 경우 빈 쿼리셋 반환
+
     @extend_schema(
         summary="캘린더 목록 조회",
         description="현재 사용자가 생성한 캘린더 목록을 반환합니다.",
@@ -60,14 +69,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
-    def get_queryset(self):
-        if self.request.user.is_authenticated:
-            # 생성자 또는 관리자로 속한 캘린더 조회 가능
-            return self.queryset.filter(
-                models.Q(creator=self.request.user) |
-                models.Q(admins=self.request.user)
-            ).distinct()
-        return Calendar.objects.none() # 인증되지 않은 경우 빈 쿼리셋 반환
+
 
     def perform_create(self, serializer):
         calendar = serializer.save(creator=self.request.user)  # 캘린더 생성
@@ -614,7 +616,7 @@ class CalendarMembersAPIView(ListAPIView):
     캘린더에 속한 관리자 멤버 조회
     """
 
-    serializer_class = SubscriptionSerializer
+    serializer_class = SubscriptionDetailSerializer
     permission_classes = [IsAuthenticated]
     # permission_classes = [AllowAny]  # 인증 없이 접근 가능
 

@@ -50,7 +50,30 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
 
 class CalendarSearchResultSerializer(serializers.ModelSerializer):
     creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
-    # is_subscribed = serializers.SerializerMethodField()
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Calendar
+        fields = [
+            "calendar_id",
+            "name",
+            "description",
+            "is_public",
+            "color",
+            "created_at",
+            "creator_nickname",
+            "is_subscribed",
+        ]
+
+    def get_is_subscribed(self, obj):
+        user = self.context["request"].user
+        return Subscription.objects.filter(user=user, calendar=obj).exists()
+
+class CalendarDetailSerializer(serializers.ModelSerializer):
+    """
+    캘린더 조회용 Serializer (초대 코드 제외)
+    """
+    creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)
 
     class Meta:
         model = Calendar
@@ -63,35 +86,14 @@ class CalendarSearchResultSerializer(serializers.ModelSerializer):
             "created_at",
             "creator_nickname",
         ]
-    #
-    # def get_is_subscribed(self, obj):
-    #     user = self.context["request"].user
-    #     return Subscription.objects.filter(user=user, calendar=obj).exists()
-
-class CalendarDetailSerializer(serializers.ModelSerializer):
-    """
-    캘린더 조회용 Serializer (초대 코드 제외)
-    """
-    class Meta:
-        model = Calendar
-        fields = [
-            "calendar_id",
-            "name",
-            "description",
-            "is_public",
-            "color",
-            "created_at",
-            "creator",
-            "admins",
-        ]
         # 초대 코드는 포함하지 않음
 
-    def get_subscription_status(self, obj):
-        return {
-            "is_visible": obj.is_visible,
-            "is_on_calendar": obj.is_on_calendar,
-            "is_active": obj.is_active
-        }
+    # def get_subscription_status(self, obj):
+    #     return {
+    #         "is_visible": obj.is_visible,
+    #         "is_on_calendar": obj.is_on_calendar,
+    #         "is_active": obj.is_active
+    #     }
 
 # class SubscriptionSerializer(serializers.ModelSerializer):
 #     """
