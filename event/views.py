@@ -21,7 +21,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.http import Http404
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.generics import (
     CreateAPIView,
     ListAPIView,
@@ -30,6 +30,8 @@ from rest_framework.generics import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from calendars.models import CalendarAdmin, Subscription
 
 from .models import Calendar, Event
 from .serializers import EventSerializer, PrivateEventSerializer, PublicEventSerializer
@@ -327,3 +329,48 @@ class EventUploadView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class EventViewSet(viewsets.ModelViewSet):
+    """
+    이벤트 ViewSet
+    """
+
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Response([])
+
+        # 1. 관리자로 있는 캘린더의 이벤트
+        admin_calendars = CalendarAdmin.objects.filter(user=user)
+        admin_calendar_ids = [admin.calendar.calendar_id for admin in admin_calendars]
+        admin_events = Event.objects.filter(calendar_id__in=admin_calendar_ids)
+        admin_events_serialized = EventSerializer(
+            admin_events, many=True, context={"request": request}
+        ).data
+
+        # 2. 구독 중인 캘린더의 이벤트
+        subscribed_calendars = Subscription.objects.filter(user_id=user, is_active=True)
+        subscribed_calendar_ids = [
+            sub.calendar.calendar_id for sub in subscribed_calendars
+        ]
+        subscribed_events = Event.objects.filter(
+            calendar_id__in=subscribed_calendar_ids
+        )
+        subscribed_events_serialized = EventSerializer(
+            subscribed_events, many=True, context={"request": request}
+        ).data
+
+        # 구분된 형태로 반환
+        return Response(
+            {
+                "admin_events": admin_events_serialized,
+                "subscription_events": subscribed_events_serialized,
+            }
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(admin_id=self.request.user)

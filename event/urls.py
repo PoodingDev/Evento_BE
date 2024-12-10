@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     EventRetrieveUpdateDestroyAPIView,
     EventUploadView,
+    EventViewSet,
     PrivateEventCreateAPIView,
     PrivateEventListAPIView,
     PublicEventCreateAPIView,
@@ -34,4 +35,6 @@ urlpatterns = [
     ),
     # CSV 업로드 및 업데이트
     path("upload/", EventUploadView.as_view(), name="event-upload"),
+    # 이벤트 ViewSet
+    path("active/", EventViewSet.as_view({"get": "list"}), name="event-viewset"),
 ]

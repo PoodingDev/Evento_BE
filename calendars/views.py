@@ -27,13 +27,20 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     """
 
     queryset = Calendar.objects.all()
-    serializer_class = CalendarCreateSerializer
+    serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_serializer_class(self):
-        if self.request.method == "POST":
-            return CalendarCreateSerializer
-        return CalendarDetailSerializer
+    def get_queryset(self):
+        user = self.request.user
+        if not user.is_authenticated:
+            return Calendar.objects.none()
+
+        return Calendar.objects.filter(
+            Q(creator=user)  # 생성자이거나
+            | Q(
+                calendar_admins__user=user, calendar_admins__is_active=True
+            )  # 활성화된 관리자
+        ).distinct()
 
     @extend_schema(
         summary="캘린더 목록 조회",
