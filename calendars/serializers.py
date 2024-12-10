@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Calendar, Subscription
+from .models import Calendar, Subscription, Event
 
 
 class CalendarCreateSerializer(serializers.ModelSerializer):
@@ -199,3 +199,19 @@ class CalendarSearchSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return Subscription.objects.filter(user=request.user, calendar=obj).exists()
         return False
+
+class ActiveEventSerializer(serializers.ModelSerializer):
+    calendar_name = serializers.CharField(source="calendar.name", read_only=True)
+    is_public = serializers.BooleanField(source="calendar.is_public", read_only=True)
+
+    class Meta:
+        model = Event
+        fields = [
+            "event_id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "calendar_name",  # 캘린더 이름 추가
+            "is_public",  # 캘린더 공개 여부 추가
+        ]

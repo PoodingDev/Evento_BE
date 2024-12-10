@@ -1,7 +1,7 @@
 from django.db import models, transaction
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
@@ -22,7 +22,7 @@ from .serializers import (
     CalendarDetailSerializer,
     CalendarSearchResultSerializer,
     CalendarSearchSerializer,
-    SubscriptionSerializer,
+    SubscriptionSerializer, ActiveEventSerializer,
 )
 
 
@@ -602,4 +602,51 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
 
         return Response(
             {"message": "구독 캘린더 표시 상태가 업데이트되었습니다."}, status=200
+        )
+
+
+class ActiveCalendarEventListAPIView(ListAPIView):
+    """
+    내가 관리자인 is_active 캘린더의 이벤트
+    + 내가 구독자인 is_active 공개 캘린더 이벤트
+    """
+    serializer_class = ActiveEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="활성화된 캘린더 이벤트 조회",
+        description=
+        "1. 사용자가 관리자로 등록된 캘린더 중 is_active=True인 이벤트"
+        "2. 사용자가 구독한 캘린더 중 is_active=True, is_public=True인 이벤트를 조회합니다.",
+        responses={
+            200: OpenApiResponse(
+                response=ActiveEventSerializer(many=True),
+                description="성공적으로 이벤트 목록을 조회했습니다."
+            ),
+            401: OpenApiResponse(
+                description="인증되지 않은 사용자"
+            ),
+            403: OpenApiResponse(
+                description="권한이 없는 사용자"
+            )
+        },
+        tags=['이벤트']  # 선택적: 스웨거 UI에서 그룹화
+    )
+    def get_queryset(self):
+        # 내가 관리자인 캘린더 (is_active=True)
+        admin_calendar_ids = Calendar.objects.filter(
+            admins=self.request.user,
+            subscriptions__is_active=True  # is_active=True 필터
+        ).values_list("id", flat=True)
+
+        # 내가 구독자로 등록된 공개 캘린더 (is_active=True, is_public=True)
+        subscribed_calendar_ids = Subscription.objects.filter(
+            user=self.request.user,
+            is_active=True,
+            calendar__is_public=True  # 공개 캘린더만
+        ).values_list("calendar_id", flat=True)
+
+        # 이벤트 필터링
+        return Event.objects.filter(
+            calendar_id__in=admin_calendar_ids.union(subscribed_calendar_ids)
         )

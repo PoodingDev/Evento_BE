@@ -7,7 +7,6 @@ from .views import (
     PrivateEventListAPIView,
     PublicEventCreateAPIView,
     PublicEventListAPIView,
-    ActiveCalendarEventListAPIView
 )
 
 urlpatterns = [
@@ -34,7 +33,7 @@ urlpatterns = [
         name="event-detail",
     ),
 
-    path("active/", ActiveCalendarEventListAPIView.as_view(), name="active-event-list"),
+
     # CSV 업로드 및 업데이트
     path("upload/", EventUploadView.as_view(), name="event-upload"),
 ]

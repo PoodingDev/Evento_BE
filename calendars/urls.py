@@ -12,6 +12,7 @@ from .views import (
     SubscriptionListCreateAPIView,
     UpdateActiveStatusAPIView,
     UpdateSubscriptionVisibilityAPIView,
+    ActiveCalendarEventListAPIView
 )
 
 urlpatterns = [
@@ -60,4 +61,6 @@ urlpatterns = [
         UpdateSubscriptionVisibilityAPIView.as_view(),
         name="update-subscription-visibility",
     ),
+
+    path("active/", ActiveCalendarEventListAPIView.as_view(), name="active-event-list"),
 ]
