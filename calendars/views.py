@@ -140,9 +140,27 @@ class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
         return super().put(request, *args, **kwargs)
 
     @extend_schema(
-        summary="캘린더 삭제",
-        description="특정 캘린더를 삭제합니다.",
-        responses={204: None},
+        summary="구독한 캘린더 목록 조회",
+        description="현재 사용자가 구독한 캘린더 목록을 반환합니다.",
+        responses={
+            200: {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "subscription_id": {"type": "integer"},
+                        "calendar_id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "is_public": {"type": "boolean"},
+                        "color": {"type": "string"},
+                        "creator_id": {"type": "integer"},
+                        "creator_nickname": {"type": "string"},
+                        "is_active": {"type": "boolean"},
+                    },
+                },
+            }
+        },
     )
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
@@ -375,7 +393,15 @@ class AdminCalendarsAPIView(ListAPIView):
                 "items": {
                     "type": "object",
                     "properties": {
-                        "calendar": {"$ref": "#/components/schemas/CalendarDetail"},
+                        "calendar_id": {"type": "integer"},
+                        "name": {"type": "string"},
+                        "description": {"type": "string"},
+                        "is_public": {"type": "boolean"},
+                        "color": {"type": "string"},
+                        "invitation_code": {"type": "string"},
+                        "creator_id": {"type": "integer"},
+                        "admins": {"type": "array", "items": {"type": "string"}},
+                        "is_active": {"type": "boolean"},
                     },
                 },
             }
@@ -399,7 +425,7 @@ class AdminCalendarsAPIView(ListAPIView):
                 "invitation_code": calendar.invitation_code,
                 "creator_id": calendar.creator_id,
                 "admins": list(calendar.admins.values_list("nickname", flat=True)),
-                "is_active": True,
+                "is_active": True,  # 기본값 True로 설정
             }
             data.append(calendar_data)
 
@@ -501,7 +527,7 @@ class AdminInvitationView(APIView):
 
             if request.user in calendar.admins.all():
                 return Response(
-                    {"error": "이미 관리자��� 추가된 캘린더입니다."},
+                    {"error": "이미 관리자로 추가된 캘린더입니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -514,7 +540,7 @@ class AdminInvitationView(APIView):
 
         except Calendar.DoesNotExist:
             return Response(
-                {"error": "���효하지 않은 초대 코드입니다."},
+                {"error": "유효하지 않은 초대 코드입니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
