@@ -344,7 +344,7 @@ class EventViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Response([])
 
-        # 1. 관리자로 있는 캘린더의 이벤트
+        # 1. 관리자로 있는 캘린더의 이벤트 (공개/비공개 모두 조회 가능)
         admin_calendars = CalendarAdmin.objects.filter(user=user)
         admin_calendar_ids = [admin.calendar.calendar_id for admin in admin_calendars]
         admin_events = Event.objects.filter(calendar_id__in=admin_calendar_ids)
@@ -352,13 +352,14 @@ class EventViewSet(viewsets.ModelViewSet):
             admin_events, many=True, context={"request": request}
         ).data
 
-        # 2. 구독 중인 캘린더의 이벤트
+        # 2. 구독 중인 캘린더의 이벤트 (공개 이벤트만 조회 가능)
         subscribed_calendars = Subscription.objects.filter(user_id=user, is_active=True)
         subscribed_calendar_ids = [
             sub.calendar.calendar_id for sub in subscribed_calendars
         ]
         subscribed_events = Event.objects.filter(
-            calendar_id__in=subscribed_calendar_ids
+            calendar_id__in=subscribed_calendar_ids,
+            is_public=True,  # 공개 이벤트만 필터링
         )
         subscribed_events_serialized = EventSerializer(
             subscribed_events, many=True, context={"request": request}
