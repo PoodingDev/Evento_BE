@@ -30,7 +30,7 @@ class FavoriteEventListSerializer(FavoriteEventBaseSerializer):
         ]
 
 
-class FavoriteEventSerializer(FavoriteEventBaseSerializer):
+class FavoriteEventSerializer(serializers.ModelSerializer):
     """즐겨찾기 상세 조회 시리얼라이저"""
 
     d_day = serializers.SerializerMethodField()
@@ -48,17 +48,21 @@ class FavoriteEventSerializer(FavoriteEventBaseSerializer):
         """
         현재 날짜와 이벤트 시작 날짜의 차이를 계산하여 D-day 반환
         """
-        today = timezone.localtime().date()
-        event_date = obj.event_id.start_time.date()
+        try:
+            today = timezone.localtime().date()
+            event_date = obj.event_id.start_time.date()
 
-        diff = (event_date - today).days
+            diff = (event_date - today).days
 
-        if diff > 0:
-            return f"D-{diff}"
-        elif diff < 0:
-            return f"D+{abs(diff)}"
-        else:
-            return "D-Day"
+            if diff > 0:
+                return f"D-{diff}"
+            elif diff < 0:
+                return f"D+{abs(diff)}"
+            else:
+                return "D-Day"
+        except Exception as e:
+            print(f"Error calculating d_day: {str(e)}")
+            return None
 
 
 class FavoriteEventResponseSerializer(serializers.Serializer):
