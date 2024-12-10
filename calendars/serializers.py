@@ -33,6 +33,11 @@ class CalendarCreateSerializer(serializers.ModelSerializer):
 
         return representation
 
+    def create(self, validated_data):
+        # 요청 사용자로 creator 설정
+        validated_data["creator"] = self.context["request"].user
+        return super().create(validated_data)
+
 
 class CalendarSearchResultSerializer(serializers.ModelSerializer):
     creator_nickname = serializers.CharField(source="creator.nickname", read_only=True)

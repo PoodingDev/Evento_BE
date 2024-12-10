@@ -28,7 +28,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     """
 
     queryset = Calendar.objects.all()
-    serializer_class = CalendarDetailSerializer
+    serializer_class = CalendarCreateSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -37,10 +37,8 @@ class CalendarListCreateAPIView(ListCreateAPIView):
             return Calendar.objects.none()
 
         return Calendar.objects.filter(
-            Q(creator=user)  # 생성자이거나
-            | Q(
-                calendar_admins__user=user, calendar_admins__is_active=True
-            )  # 활성화된 관리자
+            Q(creator=user)
+            | Q(calendar_admins__user=user, calendar_admins__is_active=True)
         ).distinct()
 
     @extend_schema(
@@ -68,10 +66,16 @@ class CalendarListCreateAPIView(ListCreateAPIView):
             ).distinct()
         return Calendar.objects.none()  # 인증되지 않은 경우 빈 쿼리셋 반환
 
+    def get_serializer_context(self):
+        """
+        Serializer에 request context 추가
+        """
+        context = super().get_serializer_context()
+        context["request"] = self.request
+        return context
+
     def perform_create(self, serializer):
-        calendar = serializer.save(creator=self.request.user)  # 캘린더 생성
-        if self.request.user.is_authenticated:
-            serializer.save(creator=self.request.user)
+        serializer.save(creator=self.request.user)  # 캘린더 생성시 creator 설정
 
 
 class CalendarRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
@@ -497,7 +501,7 @@ class AdminInvitationView(APIView):
 
             if request.user in calendar.admins.all():
                 return Response(
-                    {"error": "이미 관리자로 추가된 캘린더입니다."},
+                    {"error": "이미 관리자��� 추가된 캘린더입니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -510,7 +514,7 @@ class AdminInvitationView(APIView):
 
         except Calendar.DoesNotExist:
             return Response(
-                {"error": "유효하지 않은 초대 코드입니다."},
+                {"error": "���효하지 않은 초대 코드입니다."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
