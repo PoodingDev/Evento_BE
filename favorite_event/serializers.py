@@ -18,7 +18,7 @@ class FavoriteEventListSerializer(FavoriteEventBaseSerializer):
     """즐겨찾기 목록 조회용 시리얼라이저"""
 
     event_title = serializers.CharField(source="event_id.title", read_only=True)
-    d_day = serializers.DateField(format="%Y-%m-%d")
+    d_day = serializers.SerializerMethodField()
 
     class Meta(FavoriteEventBaseSerializer.Meta):
         fields = [
@@ -28,6 +28,12 @@ class FavoriteEventListSerializer(FavoriteEventBaseSerializer):
             "d_day",
             "easy_insidebar",
         ]
+
+    def get_d_day(self, obj):
+        """
+        FavoriteEvent 모델의 calculate_d_day 메서드 호출
+        """
+        return obj.calculate_d_day()
 
 
 class FavoriteEventSerializer(serializers.ModelSerializer):
