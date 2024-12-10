@@ -5,6 +5,7 @@ from django.db import models
 
 from calendars.models import Calendar
 from user.models import User
+import uuid
 
 
 class Event(models.Model):
@@ -77,3 +78,17 @@ class Event(models.Model):
         비공개 이벤트 조회
         """
         return Event.objects.filter(is_public=False)
+
+class Subscription(models.Model):
+    """캘린더 구독 모델"""
+    subscription_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE)
+    calendar = models.ForeignKey(
+        Calendar, on_delete=models.CASCADE, related_name='event_subscriptions'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'subscription'
