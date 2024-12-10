@@ -13,7 +13,7 @@ class EventSerializer(serializers.ModelSerializer):
 
     is_liked = serializers.SerializerMethodField()
     calendar_color = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Event
         fields = [
@@ -35,7 +35,7 @@ class EventSerializer(serializers.ModelSerializer):
         """
         현재 사용자가 이벤트를 좋아요 했는지 여부를 반환
         """
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return False
 
@@ -55,7 +55,7 @@ class EventSerializer(serializers.ModelSerializer):
         """
         이벤트가 속한 캘린더의 색상 반환
         """
-        calendar = getattr(obj, 'calendar_id', None)
+        calendar = getattr(obj, "calendar_id", None)
         return calendar.color if calendar else None
 
     def create(self, validated_data):

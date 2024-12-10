@@ -173,23 +173,40 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
         user = request.user
         calendar_id = request.data.get("calendar_id")
 
-        # 중복 체크
-        if Subscription.objects.filter(
-            user_id=user.pk, calendar_id=calendar_id
-        ).exists():
-            return Response(
-                {"error": "이미 구독된 캘린더입니다."},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            # 캘린더가 존재하고 공개 상태인지 확인
+            calendar = Calendar.objects.get(calendar_id=calendar_id)
+            if not calendar.is_public:
+                return Response(
+                    {"error": "비공개 캘린더는 구독할 수 없습니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 중복 구독 체크
+            if Subscription.objects.filter(user=user, calendar=calendar).exists():
+                return Response(
+                    {"error": "이미 구독된 캘린더입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # 구독 생성 (is_active=True로 설정)
+            subscription = Subscription.objects.create(
+                user=user, calendar=calendar, is_active=True  # 구독 시 자동으로 활성화
             )
 
-        # Serializer 생성 시 context에 request 추가
-        serializer = SubscriptionSerializer(
-            data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.save(user=user)
+            serializer = self.get_serializer(subscription)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Calendar.DoesNotExist:
+            return Response(
+                {"error": "캘린더를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     def perform_create(self, serializer):
         if self.request.user.is_authenticated:
