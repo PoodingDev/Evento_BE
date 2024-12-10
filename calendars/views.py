@@ -169,7 +169,25 @@ class SubscriptionListCreateAPIView(ListCreateAPIView):
         responses={200: SubscriptionSerializer(many=True)},
     )
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        subscriptions = self.get_queryset()
+        data = []
+
+        for subscription in subscriptions:
+            calendar = subscription.calendar
+            subscription_data = {
+                "subscription_id": subscription.id,
+                "calendar_id": calendar.calendar_id,
+                "name": calendar.name,
+                "description": calendar.description,
+                "is_public": calendar.is_public,
+                "color": calendar.color,
+                "creator_id": calendar.creator_id,
+                "creator_nickname": calendar.creator.nickname,
+                "is_active": subscription.is_active,  # Subscription 모델의 is_active 사용
+            }
+            data.append(subscription_data)
+
+        return Response(data, status=200)
 
     @extend_schema(
         summary="캘린더 구독 추가",
@@ -366,21 +384,20 @@ class AdminCalendarsAPIView(ListAPIView):
         ).distinct()
 
         # 응답 데이터 생성
-        data = [
-            {
+        data = []
+        for calendar in calendars:
+            calendar_data = {
                 "calendar_id": calendar.calendar_id,
                 "name": calendar.name,
                 "description": calendar.description,
                 "is_public": calendar.is_public,
                 "color": calendar.color,
                 "invitation_code": calendar.invitation_code,
-                "creator_id": calendar.creator_id,  # 생성자의 ID
-                "admins": list(
-                    calendar.admins.values_list("nickname", flat=True)
-                ),  # 관리자 멤버 리스트
+                "creator_id": calendar.creator_id,
+                "admins": list(calendar.admins.values_list("nickname", flat=True)),
+                "is_active": True,
             }
-            for calendar in calendars
-        ]
+            data.append(calendar_data)
 
         return Response(data, status=200)
 
