@@ -38,14 +38,11 @@ class EventSerializer(serializers.ModelSerializer):
         """
         try:
             if hasattr(obj, "calendar_id") and obj.calendar_id:
-                # calendar_id가 ForeignKey이므로 실제 Calendar 객체에 접근
                 calendar = obj.calendar_id
-                print(f"Calendar: {calendar}")  # 디버깅용
-                print(f"Calendar title: {calendar.title}")  # 디버깅용
-                return calendar.title
+                return calendar.name
             return None
         except Exception as e:
-            print(f"Error getting calendar title: {str(e)}")  # 디버깅용
+            print(f"Error getting calendar title: {str(e)}")
             return None
 
     def get_calendar_color(self, obj):
