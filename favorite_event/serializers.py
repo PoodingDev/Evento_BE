@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from favorite_event.models import FavoriteEvent
@@ -32,6 +33,8 @@ class FavoriteEventListSerializer(FavoriteEventBaseSerializer):
 class FavoriteEventSerializer(FavoriteEventBaseSerializer):
     """즐겨찾기 상세 조회 시리얼라이저"""
 
+    d_day = serializers.SerializerMethodField()
+
     class Meta(FavoriteEventBaseSerializer.Meta):
         fields = [
             "favorite_event_id",
@@ -40,6 +43,22 @@ class FavoriteEventSerializer(FavoriteEventBaseSerializer):
             "easy_insidebar",
             "d_day",
         ]
+
+    def get_d_day(self, obj):
+        """
+        현재 날짜와 이벤트 시작 날짜의 차이를 계산하여 D-day 반환
+        """
+        today = timezone.localtime().date()
+        event_date = obj.event_id.start_time.date()
+
+        diff = (event_date - today).days
+
+        if diff > 0:
+            return f"D-{diff}"
+        elif diff < 0:
+            return f"D+{abs(diff)}"
+        else:
+            return "D-Day"
 
 
 class FavoriteEventResponseSerializer(serializers.Serializer):
