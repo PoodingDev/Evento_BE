@@ -10,7 +10,7 @@ class EventSerializer(serializers.ModelSerializer):
     """
     Event 모델에 대한 기본 Serializer
     """
-
+    color = serializers.CharField(source='calendar.color', read_only=True)  # 캘린더 색상 추가
     is_liked = serializers.SerializerMethodField()
 
     class Meta:
@@ -22,6 +22,7 @@ class EventSerializer(serializers.ModelSerializer):
             "description",
             "start_time",
             "end_time",
+            "color",
             "admin_id",
             "is_public",
             "location",
@@ -67,6 +68,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
     """
     공개 이벤트용 Serializer
     """
+    color = serializers.CharField(source='calendar.color', read_only=True)  # 캘린더 색상 추가
 
     class Meta:
         model = Event
@@ -77,6 +79,7 @@ class PublicEventSerializer(serializers.ModelSerializer):
             "description",
             "start_time",
             "end_time",
+            "color",
             "admin_id",
             "is_public",
             "location",
@@ -93,6 +96,7 @@ class PrivateEventSerializer(serializers.ModelSerializer):
     """
     비공개 이벤트용 Serializer
     """
+    color = serializers.CharField(source='calendar.color', read_only=True)  # 캘린더 색상 추가
 
     class Meta:
         model = Event
@@ -103,6 +107,7 @@ class PrivateEventSerializer(serializers.ModelSerializer):
             "description",
             "start_time",
             "end_time",
+            "color",
             "admin_id",
             "is_public",
             "location",
