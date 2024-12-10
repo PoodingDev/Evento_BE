@@ -41,13 +41,7 @@ class Calendar(models.Model):
 
             # 구독 생성 로직 제거
             if is_new:
-                # 새로운 캘린더 생성 시 creator를 member로 추가
-                self.members.add(self.creator)
                 CalendarAdmin.objects.get_or_create(user=self.creator, calendar=self)
-                # Subscription.objects.create(
-                #     user=self.creator, calendar=self, is_active=True
-                # )
-                # CalendarAdmin.objects.get_or_create(user=self.creator, calendar=self)
         except Exception as e:
             print(f"Error during save: {e}")
             raise
@@ -109,6 +103,7 @@ class CalendarAdmin(models.Model):
 
     def __str__(self):
         return f"{self.user} is admin of {self.calendar}"
+
 
 class Event(models.Model):
     """
