@@ -70,13 +70,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
     def perform_create(self, serializer):
         calendar = serializer.save(creator=self.request.user)  # 캘린더 생성
 
-        # 캘린더 생성 시 creator를 member로 추가
-        Subscription.objects.create(
-            user=self.request.user, calendar=calendar, is_active=True
-        )
-
         if self.request.user.is_authenticated:
-            # 캘린더 생성 시 요청 사용자를 소유자로 설정
             serializer.save(creator=self.request.user)
 
 
