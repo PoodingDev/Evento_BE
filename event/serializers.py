@@ -13,13 +13,14 @@ class EventSerializer(serializers.ModelSerializer):
 
     is_liked = serializers.SerializerMethodField()
     calendar_color = serializers.SerializerMethodField()
+    calendar_title = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = [
             "event_id",
             "calendar_id",
-            "title",
+            "calendar_title",
             "description",
             "start_time",
             "end_time",
@@ -57,6 +58,18 @@ class EventSerializer(serializers.ModelSerializer):
         """
         calendar = getattr(obj, "calendar_id", None)
         return calendar.color if calendar else None
+
+    def get_calendar_title(self, obj):
+        """
+        이벤트가 속한 캘린더의 타이틀을 이벤트 타이틀로 사용
+        """
+        try:
+            calendar = obj.calendar_id
+            if calendar:
+                return obj.title
+            return None
+        except AttributeError:
+            return None
 
     def create(self, validated_data):
         validated_data["admin_id"] = self.context["request"].user
