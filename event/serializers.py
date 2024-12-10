@@ -26,6 +26,7 @@ class EventSerializer(serializers.ModelSerializer):
             "is_public",
             "location",
             "is_liked",
+            "is_active"
         ]
         read_only_fields = ["event_id", "admin_id"]
 

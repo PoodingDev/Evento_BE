@@ -38,9 +38,11 @@ class Event(models.Model):
     is_public = models.BooleanField(
         default=False, verbose_name="공개 여부"
     )  # 이벤트 공개 여부
+    is_active = models.BooleanField()
     location = models.CharField(
         max_length=255, null=True, blank=True, verbose_name="위치"
     )  # 이벤트 위치 (선택적)
+
 
     class Meta:
         """
