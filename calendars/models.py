@@ -1,5 +1,6 @@
 import random
 import string
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -39,9 +40,6 @@ class Calendar(models.Model):
             super().save(*args, **kwargs)
 
             if is_new:
-                Subscription.objects.create(
-                    user=self.creator, calendar=self, is_active=True
-                )
                 CalendarAdmin.objects.get_or_create(user=self.creator, calendar=self)
         except Exception as e:
             print(f"Error during save: {e}")
@@ -104,3 +102,38 @@ class CalendarAdmin(models.Model):
 
     def __str__(self):
         return f"{self.user} is admin of {self.calendar}"
+
+class Event(models.Model):
+    """
+    Event 모델 정의
+    - 일정 정보를 저장하며, 캘린더 및 관리 유저와 연동
+    """
+
+    event_id = models.UUIDField(
+        primary_key=True,  # UUID를 기본 키로 사용
+        default=uuid.uuid4,  # 기본값으로 UUID 자동 생성
+        editable=False,  # 수정 불가
+    )
+    calendar_id = models.ForeignKey(
+        Calendar,  # 캘린더와의 외래키 관계
+        on_delete=models.CASCADE,  # 캘린더 삭제 시 관련 이벤트 삭제
+        related_name="calendar_app_events",  # 역참조 이름
+    )
+    title = models.CharField(max_length=255, verbose_name="이벤트 제목")  # 이벤트 제목
+    description = models.TextField(
+        null=True, blank=True, verbose_name="이벤트 설명"
+    )  # 이벤트 설명 (선택적)
+    start_time = models.DateTimeField(verbose_name="시작 시간")  # 시작 시간
+    end_time = models.DateTimeField(verbose_name="종료 시간")  # 종료 시간
+    admin_id = models.ForeignKey(
+        User,  # 유저와의 외래키 관계
+        on_delete=models.CASCADE,  # 유저 삭제 시 관련 이벤트 삭제
+        related_name="calendar_events",  # 역참조 이름
+    )
+    is_public = models.BooleanField(
+        default=False, verbose_name="공개 여부"
+    )  # 이벤트 공개 여부
+    is_active = models.BooleanField()
+    location = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="위치"
+    )  # 이벤트 위치 (선택적)

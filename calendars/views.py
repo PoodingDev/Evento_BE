@@ -37,9 +37,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
 
     def get_serializer_class(self):
         if self.request.method == "POST":
-            # 생성 시 초대 코드 포함 Serializer
             return CalendarCreateSerializer
-        # 조회 시 초대 코드 제외 Serializer
         return CalendarDetailSerializer
 
     @extend_schema(
@@ -69,18 +67,7 @@ class CalendarListCreateAPIView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         calendar = serializer.save(creator=self.request.user)  # 캘린더 생성
-
-        # 캘린더 생성 시 creator를 member로 추가
-        calendar = serializer.save(creator=self.request.user)
-        # creator를 member로 추가
-        calendar.members.add(self.request.user)
-
-        # Subscription.objects.create(
-        #     user=self.request.user, calendar=calendar, is_active=True
-        # )
-
         if self.request.user.is_authenticated:
-            # 캘린더 생성 시 요청 사용자를 소유자로 설정
             serializer.save(creator=self.request.user)
 
 
