@@ -11,6 +11,8 @@ from .views import (
     SubscriptionDeleteAPIView,
     SubscriptionListCreateAPIView,
     UpdateActiveStatusAPIView,
+    UpdateCalendarAdminActiveView,
+    UpdateSubscriptionActiveView,
     UpdateSubscriptionVisibilityAPIView,
 )
 
@@ -50,14 +52,13 @@ urlpatterns = [
     # 관리자 초대
     path("admins/invite/", AdminInvitationView.as_view(), name="admin-invitation"),
     path(
-        "subscriptions/update-status/",
-        UpdateActiveStatusAPIView.as_view(),
-        name="update-active-status",
+        "subscriptions/update/",
+        UpdateCalendarAdminActiveView.as_view(),
+        name="update-calendar-admin-active",
     ),
-    # 구독 표시 여부 업데이트
     path(
-        "subscriptions/update-visibility/",
-        UpdateSubscriptionVisibilityAPIView.as_view(),
-        name="update-subscription-visibility",
+        "subscriptions/update-subscription/",
+        UpdateSubscriptionActiveView.as_view(),
+        name="update-subscription-active",
     ),
 ]

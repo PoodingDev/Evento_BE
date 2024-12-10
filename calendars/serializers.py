@@ -199,3 +199,12 @@ class CalendarSearchSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return Subscription.objects.filter(user=request.user, calendar=obj).exists()
         return False
+
+
+class UpdateCalendarActiveSerializer(serializers.Serializer):
+    """
+    캘린더 활성화 상태 업데이트를 위한 Serializer
+    """
+
+    calendar_id = serializers.IntegerField(required=True, help_text="캘린더 ID")
+    is_active = serializers.BooleanField(required=True, help_text="활성화 상태")

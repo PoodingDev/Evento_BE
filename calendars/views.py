@@ -12,12 +12,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Calendar, Subscription
+from .models import Calendar, CalendarAdmin, Subscription
 from .serializers import (
     AdminInvitationSerializer,
     CalendarCreateSerializer,
     CalendarDetailSerializer,
     SubscriptionSerializer,
+    UpdateCalendarActiveSerializer,
 )
 
 
@@ -613,3 +614,145 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
         return Response(
             {"message": "구독 캘린더 표시 상태가 업데이트되었습니다."}, status=200
         )
+
+
+class UpdateCalendarAdminActiveView(APIView):
+    """
+    관리 캘린더의 활성화 상태 업데이트
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UpdateCalendarActiveSerializer
+
+    @extend_schema(
+        summary="관리 캘린더 표시여부 업데이트",
+        description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
+        request=UpdateCalendarActiveSerializer,
+        responses={
+            200: {
+                "description": "성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "요청 데이터가 유효하지 않습니다."}
+                    }
+                },
+            },
+            404: {
+                "description": "찾을 수 없음",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "해당 구독을 찾을 수 없습니다."}
+                    }
+                },
+            },
+        },
+    )
+    def patch(self, request):
+        serializer = UpdateCalendarActiveSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "요청 데이터가 유효하지 않습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        calendar_id = serializer.validated_data["calendar_id"]
+        is_active = serializer.validated_data["is_active"]
+
+        try:
+            calendar_admin = CalendarAdmin.objects.get(
+                calendar_id=calendar_id, user=request.user
+            )
+            calendar_admin.is_active = is_active
+            calendar_admin.save()
+
+            return Response(
+                {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        except CalendarAdmin.DoesNotExist:
+            return Response(
+                {"error": "해당 구독을 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+
+class UpdateSubscriptionActiveView(APIView):
+    """
+    구독 캘린더의 활성화 상태 업데이트
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UpdateCalendarActiveSerializer
+
+    @extend_schema(
+        summary="구독 캘린더 표시여부 업데이트",
+        description="체크박스 상태에 따라 구독 캘린더의 표시 여부를 업데이트합니다.",
+        request=UpdateCalendarActiveSerializer,
+        responses={
+            200: {
+                "description": "성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "message": "캘린더 활성화 상태가 성공적으로 변경되었습니다."
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "요청 데이터가 유효하지 않습니다."}
+                    }
+                },
+            },
+            404: {
+                "description": "찾을 수 없음",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "해당 구독 정보를 찾을 수 없습니다."}
+                    }
+                },
+            },
+        },
+    )
+    def patch(self, request):
+        serializer = UpdateCalendarActiveSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "요청 데이터가 유효하지 않습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        calendar_id = serializer.validated_data["calendar_id"]
+        is_active = serializer.validated_data["is_active"]
+
+        try:
+            subscription = Subscription.objects.get(
+                calendar_id=calendar_id, user_id=request.user
+            )
+            subscription.is_active = is_active
+            subscription.save()
+
+            return Response(
+                {"message": "캘린더 활성화 상태가 성공적으로 변경되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        except Subscription.DoesNotExist:
+            return Response(
+                {"error": "해당 구독 정보를 찾을 수 없습니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
