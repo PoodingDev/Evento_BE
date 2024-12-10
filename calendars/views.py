@@ -1,27 +1,22 @@
 from django.db import models, transaction
 from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
-from rest_framework.filters import SearchFilter
 from rest_framework.generics import (
-    DestroyAPIView,
     ListAPIView,
     ListCreateAPIView,
     RetrieveUpdateDestroyAPIView,
 )
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Calendar, Subscription
 from .serializers import (
-    AdminCalendarSerializer,
     AdminInvitationSerializer,
     CalendarCreateSerializer,
     CalendarDetailSerializer,
-    CalendarSearchResultSerializer,
-    CalendarSearchSerializer,
     SubscriptionSerializer,
 )
 

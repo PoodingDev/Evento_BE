@@ -12,7 +12,8 @@ class EventSerializer(serializers.ModelSerializer):
     """
 
     is_liked = serializers.SerializerMethodField()
-
+    calendar_color = serializers.SerializerMethodField()
+    
     class Meta:
         model = Event
         fields = [
@@ -26,16 +27,15 @@ class EventSerializer(serializers.ModelSerializer):
             "is_public",
             "location",
             "is_liked",
+            "calendar_color",
         ]
         read_only_fields = ["event_id", "admin_id"]
 
     def get_is_liked(self, obj):
         """
-        현재 사용자가 이벤트를 좋아요 했는지 여부를 검증하고 반환
-        True: FavoriteEvent에 해당 이벤트가 존재하는 경우
-        False: FavoriteEvent에 해당 이벤트가 존재하지 않는 경우
+        현재 사용자가 이벤트를 좋아요 했는지 여부를 반환
         """
-        request = self.context.get("request")
+        request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
 
@@ -45,17 +45,18 @@ class EventSerializer(serializers.ModelSerializer):
                 Q(user_id=request.user.user_id) & Q(event_id=obj.event_id)
             ).first()
 
-            # 디버깅용 로그
-            print(f"User ID: {request.user.user_id}")
-            print(f"Event ID: {obj.event_id}")
-            print(f"Favorite exists: {favorite is not None}")
-
             return favorite is not None
 
         except Exception as e:
-            # 디버깅용 로그
             print(f"Error in get_is_liked: {str(e)}")
             return False
+
+    def get_calendar_color(self, obj):
+        """
+        이벤트가 속한 캘린더의 색상 반환
+        """
+        calendar = getattr(obj, 'calendar_id', None)
+        return calendar.color if calendar else None
 
     def create(self, validated_data):
         validated_data["admin_id"] = self.context["request"].user

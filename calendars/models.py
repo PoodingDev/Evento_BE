@@ -74,8 +74,6 @@ class Subscription(models.Model):
         "calendars.Calendar", on_delete=models.CASCADE, related_name="subscriptions"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    is_visible = models.BooleanField(default=True)  # 사이드바 표시 여부
-    is_on_calendar = models.BooleanField(default=True)  # 캘린더에 표시 여부
     is_active = models.BooleanField(default=True)  # 체크박스 상태
 
     class Meta:

@@ -18,9 +18,10 @@ class FavoriteEvent(models.Model):
         try:
             today = timezone.localtime().date()
             event_date = self.event_id.start_time.date()
-
-            diff = (event_date - today).days
-
+            
+            # 날짜 차이 계산
+            diff = (event_date - today).days + 1  # 하루 추가
+            
             if diff > 0:
                 return f"D-{diff}"
             elif diff < 0:
