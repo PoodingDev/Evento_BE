@@ -21,6 +21,7 @@ class EventSerializer(serializers.ModelSerializer):
             "event_id",
             "calendar_id",
             "calendar_title",
+            "title",
             "description",
             "start_time",
             "end_time",
@@ -30,7 +31,34 @@ class EventSerializer(serializers.ModelSerializer):
             "is_liked",
             "calendar_color",
         ]
-        read_only_fields = ["event_id", "admin_id"]
+
+    def get_calendar_title(self, obj):
+        """
+        이벤트가 속한 캘린더의 타이틀 반환
+        """
+        try:
+            if hasattr(obj, "calendar_id") and obj.calendar_id:
+                # calendar_id가 ForeignKey이므로 실제 Calendar 객체에 접근
+                calendar = obj.calendar_id
+                print(f"Calendar: {calendar}")  # 디버깅용
+                print(f"Calendar title: {calendar.title}")  # 디버깅용
+                return calendar.title
+            return None
+        except Exception as e:
+            print(f"Error getting calendar title: {str(e)}")  # 디버깅용
+            return None
+
+    def get_calendar_color(self, obj):
+        """
+        이벤트가 속한 캘린더의 색상 반환
+        """
+        try:
+            calendar = obj.calendar_id
+            if calendar:
+                return calendar.color
+            return None
+        except AttributeError:
+            return None
 
     def get_is_liked(self, obj):
         """
@@ -41,35 +69,11 @@ class EventSerializer(serializers.ModelSerializer):
             return False
 
         try:
-            # FavoriteEvent 존재 여부 확인 (user_id 사용)
-            favorite = FavoriteEvent.objects.filter(
-                Q(user_id=request.user.user_id) & Q(event_id=obj.event_id)
-            ).first()
-
-            return favorite is not None
-
-        except Exception as e:
-            print(f"Error in get_is_liked: {str(e)}")
+            return FavoriteEvent.objects.filter(
+                user_id=request.user.user_id, event_id=obj.event_id
+            ).exists()
+        except Exception:
             return False
-
-    def get_calendar_color(self, obj):
-        """
-        이벤트가 속한 캘린더의 색상 반환
-        """
-        calendar = getattr(obj, "calendar_id", None)
-        return calendar.color if calendar else None
-
-    def get_calendar_title(self, obj):
-        """
-        이벤트가 속한 캘린더의 타이틀을 이벤트 타이틀로 사용
-        """
-        try:
-            calendar = obj.calendar_id
-            if calendar:
-                return obj.title
-            return None
-        except AttributeError:
-            return None
 
     def create(self, validated_data):
         validated_data["admin_id"] = self.context["request"].user
