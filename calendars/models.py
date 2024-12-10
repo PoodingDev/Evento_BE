@@ -103,6 +103,7 @@ class CalendarAdmin(models.Model):
     def __str__(self):
         return f"{self.user} is admin of {self.calendar}"
 
+
 class Event(models.Model):
     """
     Event 모델 정의
