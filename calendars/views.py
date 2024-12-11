@@ -376,8 +376,11 @@ class CalendarSearchAPIView(ListAPIView):
         return Response(data, status=200)
 
 
-# 메모리 내 상태 저장소
+from threading import Lock
+
+# thread-safe 전역 변수 저장소
 calendar_admin_active_status = {}
+lock = Lock()
 
 
 class UpdateCalendarAdminActiveView(APIView):
@@ -411,14 +414,14 @@ class UpdateCalendarAdminActiveView(APIView):
                 "description": "찾을 수 없음",
                 "content": {
                     "application/json": {
-                        "example": {"error": "해당 구독을 찾을 수 없습니다."}
+                        "example": {"error": "해당 캘린더를 찾을 수 없습니다."}
                     }
                 },
             },
         },
     )
     def patch(self, request):
-        serializer = UpdateCalendarActiveSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"error": "요청 데이터가 유효하지 않습니다."},
@@ -428,14 +431,79 @@ class UpdateCalendarAdminActiveView(APIView):
         calendar_id = serializer.validated_data["calendar_id"]
         is_active = serializer.validated_data["is_active"]
 
-        # 사용자별로 캘린더의 is_active 상태 저장
         user_key = getattr(request.user, "id", request.user.username)
-        calendar_admin_active_status[(user_key, calendar_id)] = is_active
+
+        # thread-safe 방식으로 데이터 업데이트
+        with lock:
+            calendar_admin_active_status[(user_key, calendar_id)] = is_active
 
         return Response(
             {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
             status=status.HTTP_200_OK,
         )
+
+
+# 메모리 내 상태 저장소
+# calendar_admin_active_status = {}
+#
+#
+# class UpdateCalendarAdminActiveView(APIView):
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = UpdateCalendarActiveSerializer
+#
+#     @extend_schema(
+#         summary="관리 캘린더 표시여부 업데이트",
+#         description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
+#         request=UpdateCalendarActiveSerializer,
+#         responses={
+#             200: {
+#                 "description": "성공",
+#                 "content": {
+#                     "application/json": {
+#                         "example": {
+#                             "message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."
+#                         }
+#                     }
+#                 },
+#             },
+#             400: {
+#                 "description": "잘못된 요청",
+#                 "content": {
+#                     "application/json": {
+#                         "example": {"error": "요청 데이터가 유효하지 않습니다."}
+#                     }
+#                 },
+#             },
+#             404: {
+#                 "description": "찾을 수 없음",
+#                 "content": {
+#                     "application/json": {
+#                         "example": {"error": "해당 구독을 찾을 수 없습니다."}
+#                     }
+#                 },
+#             },
+#         },
+#     )
+#     def patch(self, request):
+#         serializer = UpdateCalendarActiveSerializer(data=request.data)
+#         if not serializer.is_valid():
+#             return Response(
+#                 {"error": "요청 데이터가 유효하지 않습니다."},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#
+#         calendar_id = serializer.validated_data["calendar_id"]
+#         is_active = serializer.validated_data["is_active"]
+#
+#         # 사용자별로 캘린더의 is_active 상태 저장
+#         user_key = getattr(request.user, "id", request.user.username)
+#         calendar_admin_active_status[(user_key, calendar_id)] = is_active
+#
+#         return Response(
+#             {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
+#             status=status.HTTP_200_OK,
+#         )
+#
 
 
 class AdminCalendarsAPIView(ListAPIView):
