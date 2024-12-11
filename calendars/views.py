@@ -376,11 +376,45 @@ class CalendarSearchAPIView(ListAPIView):
         return Response(data, status=200)
 
 
-class AdminCalendarsAPIView(ListAPIView):
-    """
-    관리 권한이 있는 캘린더 목록 조회
-    """
+# 메모리 내 상태 저장소
+calendar_admin_active_status = {}
 
+class UpdateCalendarAdminActiveView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UpdateCalendarActiveSerializer
+
+    @extend_schema(
+        summary="관리 캘린더 표시여부 업데이트",
+        description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
+        request=UpdateCalendarActiveSerializer,
+        responses={
+            200: {"description": "성공", "content": {"application/json": {"example": {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."}}}},
+            400: {"description": "잘못된 요청", "content": {"application/json": {"example": {"error": "요청 데이터가 유효하지 않습니다."}}}},
+            404: {"description": "찾을 수 없음", "content": {"application/json": {"example": {"error": "해당 구독을 찾을 수 없습니다."}}}}
+        }
+    )
+    def patch(self, request):
+        serializer = UpdateCalendarActiveSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "요청 데이터가 유효하지 않습니다."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        calendar_id = serializer.validated_data['calendar_id']
+        is_active = serializer.validated_data['is_active']
+
+        # 사용자별로 캘린더의 is_active 상태 저장
+        user_key = getattr(request.user, 'id', request.user.username)
+        calendar_admin_active_status[(user_key, calendar_id)] = is_active
+
+        return Response(
+            {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminCalendarsAPIView(ListAPIView):
     serializer_class = CalendarDetailSerializer
     permission_classes = [IsAuthenticated]
 
@@ -401,21 +435,23 @@ class AdminCalendarsAPIView(ListAPIView):
                         "invitation_code": {"type": "string"},
                         "creator_id": {"type": "integer"},
                         "admins": {"type": "array", "items": {"type": "string"}},
-                        "is_active": {"type": "boolean"},
+                        "is_active": {"type": "boolean"}
                     },
                 },
             }
         },
     )
     def get(self, request, *args, **kwargs):
-        # 관리 권한이 있는 캘린더
         calendars = Calendar.objects.filter(
             Q(creator=request.user) | Q(admins=request.user)
         ).distinct()
 
-        # 응답 데이터 생성
         data = []
+        user_key = getattr(request.user, 'id', request.user.username)
         for calendar in calendars:
+            # 메모리 내 상태에서 is_active 값 가져오기
+            is_active = calendar_admin_active_status.get((user_key, calendar.calendar_id), True)
+
             calendar_data = {
                 "calendar_id": calendar.calendar_id,
                 "name": calendar.name,
@@ -425,25 +461,11 @@ class AdminCalendarsAPIView(ListAPIView):
                 "invitation_code": calendar.invitation_code,
                 "creator_id": calendar.creator_id,
                 "admins": list(calendar.admins.values_list("nickname", flat=True)),
-                "is_active": True,  # 기본값 True로 설정
+                "is_active": is_active
             }
             data.append(calendar_data)
 
         return Response(data, status=200)
-
-    # def get_queryset(self):
-    #     if self.request.user.is_authenticated:
-    #         return Calendar.objects.filter(
-    #             # 생성자이거나 관리자로 초대된 캘린더
-    #             models.Q(creator=self.request.user) |
-    #             models.Q(admins=self.request.user)
-    #         ).distinct().select_related('creator')
-    #     return Calendar.objects.none()
-
-    def get_queryset(self):
-        return Calendar.objects.filter(
-            models.Q(creator=self.request.user) | models.Q(admins=self.request.user)
-        ).distinct()
 
 
 class CalendarMembersAPIView(ListAPIView):
@@ -661,77 +683,6 @@ class UpdateSubscriptionVisibilityAPIView(APIView):
         return Response(
             {"message": "구독 캘린더 표시 상태가 업데이트되었습니다."}, status=200
         )
-
-
-class UpdateCalendarAdminActiveView(APIView):
-    """
-    관리 캘린더의 활성화 상태 업데이트
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = UpdateCalendarActiveSerializer
-
-    @extend_schema(
-        summary="관리 캘린더 표시여부 업데이트",
-        description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
-        request=UpdateCalendarActiveSerializer,
-        responses={
-            200: {
-                "description": "성공",
-                "content": {
-                    "application/json": {
-                        "example": {
-                            "message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."
-                        }
-                    }
-                },
-            },
-            400: {
-                "description": "잘못된 요청",
-                "content": {
-                    "application/json": {
-                        "example": {"error": "요청 데이터가 유효하지 않습니다."}
-                    }
-                },
-            },
-            404: {
-                "description": "찾을 수 없음",
-                "content": {
-                    "application/json": {
-                        "example": {"error": "해당 구독을 찾을 수 없습니다."}
-                    }
-                },
-            },
-        },
-    )
-    def patch(self, request):
-        serializer = UpdateCalendarActiveSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(
-                {"error": "요청 데이터가 유효하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        calendar_id = serializer.validated_data["calendar_id"]
-        is_active = serializer.validated_data["is_active"]
-
-        try:
-            calendar_admin = CalendarAdmin.objects.get(
-                calendar_id=calendar_id, user=request.user
-            )
-            calendar_admin.is_active = is_active
-            calendar_admin.save()
-
-            return Response(
-                {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
-                status=status.HTTP_200_OK,
-            )
-
-        except CalendarAdmin.DoesNotExist:
-            return Response(
-                {"error": "해당 구독을 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
 
 
 class UpdateSubscriptionActiveView(APIView):
