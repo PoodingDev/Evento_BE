@@ -379,6 +379,7 @@ class CalendarSearchAPIView(ListAPIView):
 # 메모리 내 상태 저장소
 calendar_admin_active_status = {}
 
+
 class UpdateCalendarAdminActiveView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = UpdateCalendarActiveSerializer
@@ -388,29 +389,52 @@ class UpdateCalendarAdminActiveView(APIView):
         description="체크박스 상태에 따라 관리 캘린더의 표시 여부를 업데이트합니다.",
         request=UpdateCalendarActiveSerializer,
         responses={
-            200: {"description": "성공", "content": {"application/json": {"example": {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."}}}},
-            400: {"description": "잘못된 요청", "content": {"application/json": {"example": {"error": "요청 데이터가 유효하지 않습니다."}}}},
-            404: {"description": "찾을 수 없음", "content": {"application/json": {"example": {"error": "해당 구독을 찾을 수 없습니다."}}}}
-        }
+            200: {
+                "description": "성공",
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."
+                        }
+                    }
+                },
+            },
+            400: {
+                "description": "잘못된 요청",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "요청 데이터가 유효하지 않습니다."}
+                    }
+                },
+            },
+            404: {
+                "description": "찾을 수 없음",
+                "content": {
+                    "application/json": {
+                        "example": {"error": "해당 구독을 찾을 수 없습니다."}
+                    }
+                },
+            },
+        },
     )
     def patch(self, request):
         serializer = UpdateCalendarActiveSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 {"error": "요청 데이터가 유효하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        calendar_id = serializer.validated_data['calendar_id']
-        is_active = serializer.validated_data['is_active']
+        calendar_id = serializer.validated_data["calendar_id"]
+        is_active = serializer.validated_data["is_active"]
 
         # 사용자별로 캘린더의 is_active 상태 저장
-        user_key = getattr(request.user, 'id', request.user.username)
+        user_key = getattr(request.user, "id", request.user.username)
         calendar_admin_active_status[(user_key, calendar_id)] = is_active
 
         return Response(
             {"message": "캘린더 표시 여부가 성공적으로 업데이트되었습니다."},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -435,7 +459,7 @@ class AdminCalendarsAPIView(ListAPIView):
                         "invitation_code": {"type": "string"},
                         "creator_id": {"type": "integer"},
                         "admins": {"type": "array", "items": {"type": "string"}},
-                        "is_active": {"type": "boolean"}
+                        "is_active": {"type": "boolean"},
                     },
                 },
             }
@@ -447,10 +471,12 @@ class AdminCalendarsAPIView(ListAPIView):
         ).distinct()
 
         data = []
-        user_key = getattr(request.user, 'id', request.user.username)
+        user_key = getattr(request.user, "id", request.user.username)
         for calendar in calendars:
             # 메모리 내 상태에서 is_active 값 가져오기
-            is_active = calendar_admin_active_status.get((user_key, calendar.calendar_id), True)
+            is_active = calendar_admin_active_status.get(
+                (user_key, calendar.calendar_id), True
+            )
 
             calendar_data = {
                 "calendar_id": calendar.calendar_id,
@@ -461,7 +487,7 @@ class AdminCalendarsAPIView(ListAPIView):
                 "invitation_code": calendar.invitation_code,
                 "creator_id": calendar.creator_id,
                 "admins": list(calendar.admins.values_list("nickname", flat=True)),
-                "is_active": is_active
+                "is_active": is_active,
             }
             data.append(calendar_data)
 
