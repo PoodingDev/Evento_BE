@@ -92,7 +92,7 @@ Evento_BE(Django_project)
  ┣ comment          //이벤트 댓글
  ┣ comment_like     //댓글 좋아요 (X)
  ┣ event            //이벤트
- ┗ faviorite_event   //이벤트 즐겨찾기
+ ┗ faviorite_event  //이벤트 즐겨찾기
 
 DATABASE : Postgresql
 ```
